@@ -54,6 +54,11 @@ h1 span{color:var(--blue)}
 .notice strong{display:block;font-size:15px;font-weight:900;color:var(--warn);margin-bottom:2px}
 .notice p{margin:0;font-size:13.5px;line-height:1.6}
 .notice b{font-weight:900;text-decoration:underline;text-decoration-color:var(--warn);text-underline-offset:3px}
+.quick{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font:inherit;font-weight:900;font-size:14px;color:#fff;background:var(--salmon);border:0;border-radius:10px;padding:9px 16px;cursor:pointer;box-shadow:0 2px 0 color-mix(in srgb,var(--salmon) 60%,#000 20%)}
+.quick:hover{filter:brightness(1.05)}
+.quick svg{width:18px;height:18px;flex:none}
+.quick small{font-weight:500;font-size:11.5px;opacity:.9}
+@media (max-width:600px){.quick{margin-left:0;width:100%;justify-content:center}}
 .tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
 .tab{font:inherit;font-weight:700;font-size:13px;border:0;background:none;color:var(--muted);border-radius:7px;padding:6px 14px;cursor:pointer}
 .tab[aria-pressed="true"]{background:var(--blue);color:#fff}
@@ -243,6 +248,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       <button class="tab" id="tabDay">日別で選ぶ</button>
       <button class="tab" id="tabWeek">週ごとに見る</button>
     </div>
+    <button class="quick" id="quickAuto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>おすすめコースを自動作成 <small id="quickDay"></small></button>
     <span class="legend" id="viewHint"></span>
   </div>
   <nav class="days" id="days" aria-label="日付"></nav>
@@ -663,6 +669,10 @@ document.getElementById("saveCsv").onclick = async () => {
   copy(csv, "この画面では保存できないため、CSVの中身をコピーしました。テキストエディタに貼って .csv で保存してください");
 };
 document.getElementById("autoBtn").onclick = () => applyAuto(state.day);
+document.getElementById("quickAuto").onclick = () => {
+  applyAuto(state.day);
+  const aside = document.querySelector("aside"); if (aside && innerWidth <= 900) aside.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+};
 document.getElementById("copyLink").onclick = () => copy(editUrl(), "編集用リンクをコピーしました（開いた人もコマを追加・変更できます）");
 document.getElementById("copyView").onclick = () => {
   const url = viewUrl();
@@ -785,12 +795,12 @@ function render() {
   ["tabsRow", "days", "mainArea"].forEach(i => document.getElementById(i).hidden = previewMode);
   document.getElementById("preview").hidden = !previewMode;
   if (previewMode) { renderPreview(); return; }
-  renderLegend(); renderDays(); renderFilters(); renderMain(); renderCourse(); }
+  renderLegend();
+  document.getElementById("quickDay").textContent = `（${dayLabel(state.day)}）`; renderDays(); renderFilters(); renderMain(); renderCourse(); }
 document.getElementById("totalCo").textContent = C.filter(c => c[2] !== "主催").length;
 const init = decode(location.hash.slice(1));
 if (init) { previewMode = !!init.view && init.sel.length > 0; delete init.view; state = init; document.getElementById("sharedNote").hidden = !init.sel.length; }
 render();
 </script>
 
-</body>
-</html>
+</body></html>
