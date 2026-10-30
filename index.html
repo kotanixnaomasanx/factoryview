@@ -48,6 +48,7 @@ h1 span{color:var(--blue)}
 .day[aria-pressed="true"] small,.day[aria-pressed="true"] .n,.day[aria-pressed="true"].we b{color:#fff}
 .day .dot{width:6px;height:6px;border-radius:50%;background:var(--salmon);margin-top:2px;visibility:hidden}
 .day.has .dot{visibility:visible}
+.day .dot{display:none}
 .notice{display:flex;gap:10px;align-items:flex-start;border:2px solid var(--warn);background:var(--warn-soft);border-radius:12px;padding:12px 14px;color:var(--ink)}
 .notice svg{width:22px;height:22px;flex:none;color:var(--warn);margin-top:1px}
 .notice strong{display:block;font-size:15px;font-weight:900;color:var(--warn);margin-bottom:2px}
@@ -178,6 +179,18 @@ aside h2 small{font-size:12px;color:var(--muted);font-weight:500}
 .st .grp td{background:var(--bg);font-weight:700;font-size:12px}
 .stsum{display:flex;flex-wrap:wrap;gap:8px 18px;margin-bottom:10px;font-size:13px}
 .stsum b{font-family:var(--mono);font-size:18px;margin-right:2px}
+.cart{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:8px;background:var(--bg)}
+.cart h3{margin:0;font-size:13px;font-weight:700;display:flex;justify-content:space-between;gap:8px}
+.cart h3 small{font-weight:500;color:var(--muted)}
+.cartdays{display:flex;flex-wrap:wrap;gap:6px}
+.cd{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:4px 8px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.cd b{font-family:var(--mono)}
+.cd span{color:var(--muted);font-size:11px}
+.cd[aria-pressed="true"]{border-color:var(--blue);background:var(--blue-soft)}
+.dayhead{font-size:13px;font-weight:700;margin:0;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.dayhead button{font:inherit;font-size:11.5px;border:0;background:none;color:var(--muted);cursor:pointer;text-decoration:underline}
+.day .cnt{font-size:10px;font-weight:700;color:#fff;background:var(--salmon);border-radius:999px;padding:0 6px;margin-top:2px}
+.day[aria-pressed="true"] .cnt{background:#fff;color:var(--blue)}
 .calbox{border-top:1px solid var(--line);padding-top:10px;display:grid;gap:6px}
 .calbox h3{margin:0;font-size:13px;font-weight:700}
 .calbox ol{margin:0;padding-left:1.3em;font-size:11.5px;color:var(--muted)}
@@ -230,24 +243,30 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
           <label><input type="checkbox" id="aOnce" checked> 1回きりの企画を優先</label>
         </div>
         <button class="btn" id="autoBtn">この日のコースを自動で組む</button>
-        <p class="hint">今の絞り込み（エリア・種別・駅から・検索）の範囲で、車の移動時間を見込みながら、できるだけ多くの企業を回れる順番に組みます。「1回きりの企画を優先」にすると、会期中その日しかない企画を1件で約2社分の重みで選びます。今のコースは置き換わります。</p>
+        <p class="hint">今の絞り込み（エリア・種別・駅から・検索）の範囲で、車の移動時間を見込みながら、できるだけ多くの企業を回れる順番に組みます。「1回きりの企画を優先」にすると、会期中その日しかない企画を1件で約2社分の重みで選びます。この日に選んだコマだけが置き換わり、ほかの日はそのまま残ります。</p>
       </div>
       <div class="shared" id="sharedNote" hidden>共有されたコースを表示しています。コマの追加・削除をするとリンクも更新されます。</div>
+      <div class="cart" id="cart">
+        <h3>選んだ日程 <small id="cartSum"></small></h3>
+        <div class="cartdays" id="cartDays"></div>
+        <p class="hint" style="margin:0">日付を切り替えても選んだコマは残ります。共有リンク・行程テキスト・カレンダー用データは、ここに並ぶ全日程をまとめて出力します。</p>
+      </div>
+      <p class="dayhead"><span id="dayHead"></span><button id="clearDay">この日をクリア</button></p>
       <div>
         <div class="bar" id="bar"></div>
         <div class="ticks"><span>9</span><span>11</span><span>13</span><span>15</span><span>17</span><span>19</span><span>21</span></div>
       </div>
       <ol class="tl" id="tl"></ol>
-      <p class="hint" id="emptyHint">左のリストからコマを選ぶと、ここに時間順で並びます。</p>
+      <p class="hint" id="emptyHint">この日はまだコマを選んでいません。左のリストから選ぶと、時間順で並びます。</p>
       <div class="acts">
-        <button class="btn" id="copyLink">共有リンクをコピー</button>
+        <button class="btn" id="copyLink">共有リンクをコピー（全日程）</button>
         <div class="row2">
-          <button class="btn ghost" id="copyText">行程をテキストでコピー</button>
-          <a class="btn ghost" id="route" href="#" target="_blank" rel="noopener">Googleマップで経路</a>
+          <button class="btn ghost" id="copyText">行程テキストをコピー（全日程）</button>
+          <a class="btn ghost" id="route" href="#" target="_blank" rel="noopener">この日の経路をGoogleマップで</a>
         </div>
         <div class="calbox">
           <h3>Googleカレンダーへ</h3>
-          <button class="btn" id="saveCsv">カレンダー用データ（CSV）を保存</button>
+          <button class="btn" id="saveCsv">カレンダー用データ（CSV・全日程）を保存</button>
           <ol>
             <li>上のボタンでCSVを保存</li>
             <li>パソコンのGoogleカレンダーで「設定」→「インポート/エクスポート」</li>
@@ -255,7 +274,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
           </ol>
           <p class="hint">1件ずつ入れる場合は、各コマの「＋カレンダー」から追加できます。</p>
         </div>
-        <button class="btn ghost" id="clear">このコースをクリア</button>
+        <button class="btn ghost" id="clear">すべての日程をクリア</button>
         <div class="toast" id="toast" aria-live="polite"></div>
         <div class="urlbox" id="urlbox" hidden></div>
       </div>
@@ -376,7 +395,9 @@ const autoOpts = () => ({ s: toMin(document.getElementById("aStart").value) ?? 5
 function applyAuto(day) {
   const o = autoOpts(), r = autoPlan(day, o.s, o.e, o.l, o.o), toast = document.getElementById("toast");
   if (!r || !r.n) { toast.textContent = "この条件で回れるコマが見つかりませんでした。絞り込みや時間を広げてください"; setTimeout(() => toast.textContent = "", 5000); return; }
-  state = { day, sel: r.sel, times: r.times }; view = "day"; syncHash(); render();
+  const keep = state.sel.filter(id => S[id][0] !== day), times = {};
+  keep.forEach(id => { if (state.times[id] != null) times[id] = state.times[id]; });
+  state = { day, sel: [...keep, ...r.sel], times: { ...times, ...r.times } }; view = "day"; syncHash(); render();
   toast.textContent = `${r.n}社を回るコースを作りました（1回きりの企画 ${r.once}件・移動 合計約${r.travel}分）`; setTimeout(() => toast.textContent = "", 6000);
 }
 let done = new Set(), doneAt = {}, exclDone = false, dbRef = null;
@@ -395,7 +416,7 @@ function decode(h) {
   const st = { day: m[2], sel: [], times: {} };
   m[3].split("-").filter(Boolean).forEach(tok => {
     const [a, t] = tok.split("t"); const id = parseInt(a, 36);
-    if (S[id] && S[id][0] === st.day && !st.sel.includes(id)) {
+    if (S[id] && !st.sel.includes(id)) {
       st.sel.push(id);
       if (t && /^\d{4}$/.test(t)) st.times[id] = (+t.slice(0,2))*60 + (+t.slice(2));
     }
@@ -414,16 +435,21 @@ window.addEventListener("hashchange", () => {
 
 const effStart = id => { const x = S[id]; return state.times[id] ?? x.p.s ?? 9*60; };
 const effEnd = id => { const x = S[id]; if (state.times[id] != null || x.p.win) return effStart(id) + 60; return x.p.e != null ? Math.min(x.p.e, effStart(id) + 90) : effStart(id) + 60; };
-const sortedSel = () => [...state.sel].sort((a,b) => effStart(a) - effStart(b));
+const byTime = (a,b) => effStart(a) - effStart(b);
+const dayIds = d => state.sel.filter(id => S[id][0] === d).sort(byTime);
+const selDays = () => [...new Set(state.sel.map(id => S[id][0]))].sort();
+const sortedSel = () => dayIds(state.day);
+const allSorted = () => selDays().flatMap(dayIds);
 
 function renderDays() {
   const el = document.getElementById("days"); el.innerHTML = "";
   DAYS.forEach(d => {
     const i = dayInfo(d), n = new Set(S.filter(x => x[0] === d && !(exclShop && x[3] === SHOP)).map(x => x[1])).size;
     const b = document.createElement("button");
-    b.className = "day" + (i.we ? " we" : "") + (state.day === d && state.sel.length ? " has" : "");
+    const nSel = state.sel.filter(id => S[id][0] === d).length;
+    b.className = "day" + (i.we ? " we" : "");
     b.setAttribute("aria-pressed", state.day === d);
-    b.innerHTML = `<b>${i.m}/${i.dd}</b><small>${i.w}</small><span class="n">${n}社</span><span class="dot"></span>`;
+    b.innerHTML = `<b>${i.m}/${i.dd}</b><small>${i.w}</small><span class="n">${n}社</span>${nSel ? `<span class="cnt">${nSel}選択</span>` : ""}`;
     b.onclick = () => goDay(d);
     el.appendChild(b);
   });
@@ -494,7 +520,13 @@ function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&l
 
 function renderCourse() {
   const ids = sortedSel(), n = new Set(ids.map(id => S[id][1])).size;
-  document.querySelector("#cTitle small").textContent = `${dayLabel(state.day)}・${n}社 ${ids.length}コマ`;
+  const all = state.sel, ds = selDays();
+  document.querySelector("#cTitle small").textContent = all.length ? `全${ds.length}日・${new Set(all.map(id => S[id][1])).size}社・${all.length}コマ` : "";
+  document.getElementById("cartSum").textContent = all.length ? `${ds.length}日・${all.length}コマ` : "まだありません";
+  document.getElementById("cartDays").innerHTML = ds.map(d => `<button class="cd" data-cd="${d}" aria-pressed="${d === state.day}"><b>${dayLabel(d)}</b><span>${dayIds(d).length}コマ</span></button>`).join("");
+  document.getElementById("cartDays").querySelectorAll("[data-cd]").forEach(b => b.onclick = () => goDay(b.dataset.cd));
+  document.getElementById("dayHead").textContent = `${dayLabel(state.day)}の行程・${n}社 ${ids.length}コマ`;
+  document.getElementById("clearDay").hidden = !ids.length;
   document.getElementById("emptyHint").hidden = !!ids.length;
   const tl = document.getElementById("tl"); tl.innerHTML = "";
   const bar = document.getElementById("bar"); bar.innerHTML = "";
@@ -535,18 +567,19 @@ function renderCourse() {
   const route = document.getElementById("route");
   route.href = addrs.length ? "https://www.google.com/maps/dir/" + addrs.map(a => encodeURIComponent(a.replace(/〒\d{3}-\d{4}\s*/, ""))).join("/") : "https://www.google.com/maps";
   route.style.pointerEvents = addrs.length ? "" : "none"; route.style.opacity = addrs.length ? "" : ".45";
-  ["copyLink","copyText","clear","saveCsv"].forEach(b => document.getElementById(b).disabled = !ids.length);
+  ["copyLink","copyText","clear","saveCsv"].forEach(b => document.getElementById(b).disabled = !all.length);
   document.getElementById("urlbox").hidden = true;
 }
 const ON_CLAUDE = /claude/.test(location.hostname) || location.protocol === "file:";
 function shareUrl() { return (ON_CLAUDE && ARTIFACT_URL.startsWith("http") ? ARTIFACT_URL : location.href.split("#")[0]) + "#" + encode(); }
 function courseText() {
-  const ids = sortedSel();
-  return [`SFV2026 コース ${fullDate(state.day)}`, ...ids.map(id => {
+  const line = id => {
     const x = S[id], s = effStart(id);
     const t = state.times[id] != null || x.p.win ? `${fmt(s)}頃` : x[4];
     return `・${t} ${C[x[1]][0]}【${x[3]}】${x[2]}${rsvOf(x) ? `（${rsvOf(x)}）` : ""}\n　${addrOf(x)}` + (sfvUrl(x[1]) ? `\n　詳細ページ ${sfvUrl(x[1])}` : "");
-  }), "", shareUrl()].join("\n");
+  };
+  const ds = selDays();
+  return [`SFV2026 コース（${ds.length}日・${state.sel.length}コマ）`, ...ds.flatMap(d => ["", `■ ${fullDate(d)}`, ...dayIds(d).map(line)]), "", shareUrl()].join("\n");
 }
 async function copy(text, msg) {
   const toast = document.getElementById("toast");
@@ -570,11 +603,12 @@ function gcalUrl(id) {
     + "&dates=" + d + "T" + hhmm(v.s) + "00/" + d + "T" + hhmm(v.e) + "00"
     + "&location=" + encodeURIComponent(v.loc) + "&details=" + encodeURIComponent(v.desc);
 }
+function csvName() { const ds = selDays(); return ds.length === 1 ? `SFVコース_2026${ds[0]}.csv` : `SFVコース_2026${ds[0]}-${ds.at(-1)}_${ds.length}日.csv`; }
 function csvCourse() {
   const q = s => '"' + String(s).replace(/"/g, '""') + '"';
   const t12 = m => { const h = Math.floor(m/60), mm = String(m%60).padStart(2,"0"); return `${((h+11)%12)+1}:${mm} ${h < 12 ? "AM" : "PM"}`; };
   const rows = [["Subject","Start Date","Start Time","End Date","End Time","All Day Event","Description","Location","Private"].join(",")];
-  sortedSel().forEach(id => {
+  allSorted().forEach(id => {
     const v = evInfo(id), i = dayInfo(v.x[0]), date = `${String(i.m).padStart(2,"0")}/${String(i.dd).padStart(2,"0")}/2026`;
     rows.push([q(v.subject), date, t12(v.s), date, t12(v.e), "False", q(v.desc), q(v.loc), "False"].join(","));
   });
@@ -584,20 +618,21 @@ document.getElementById("saveCsv").onclick = async () => {
   const toast = document.getElementById("toast"), csv = csvCourse();
   const dl = window.claude ? await window.claude.use("downloads").catch(() => null) : null;
   if (dl) {
-    try { await dl.save({ filename: `SFVコース_2026${state.day}.csv`, data: csv }); toast.textContent = "CSVを保存しました。Googleカレンダーの「インポート」で読み込んでください"; setTimeout(() => toast.textContent = "", 6000); return; }
+    try { await dl.save({ filename: csvName(), data: csv }); toast.textContent = "CSVを保存しました。Googleカレンダーの「インポート」で読み込んでください"; setTimeout(() => toast.textContent = "", 6000); return; }
     catch (e) { if (e && e.code === "declined") { toast.textContent = "保存をキャンセルしました"; return; } }
   }
-  if (!ON_CLAUDE) { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], {type: "text/csv"})); a.download = `SFVコース_2026${state.day}.csv`; document.body.appendChild(a); a.click(); a.remove(); toast.textContent = "CSVを保存しました。Googleカレンダーの「インポート」で読み込んでください"; setTimeout(() => toast.textContent = "", 6000); return; }
+  if (!ON_CLAUDE) { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], {type: "text/csv"})); a.download = csvName(); document.body.appendChild(a); a.click(); a.remove(); toast.textContent = "CSVを保存しました。Googleカレンダーの「インポート」で読み込んでください"; setTimeout(() => toast.textContent = "", 6000); return; }
   copy(csv, "この画面では保存できないため、CSVの中身をコピーしました。テキストエディタに貼って .csv で保存してください");
 };
 document.getElementById("autoBtn").onclick = () => applyAuto(state.day);
 document.getElementById("copyLink").onclick = () => copy(shareUrl(), "共有リンクをコピーしました");
 document.getElementById("copyText").onclick = () => copy(courseText(), "行程テキストをコピーしました");
 document.getElementById("clear").onclick = () => { state.sel = []; state.times = {}; syncHash(); render(); };
+document.getElementById("clearDay").onclick = () => { state.sel.filter(id => S[id][0] === state.day).forEach(id => delete state.times[id]); state.sel = state.sel.filter(id => S[id][0] !== state.day); syncHash(); render(); };
 document.getElementById("q").oninput = e => { q = e.target.value; renderMain(); };
 
 function goDay(d, ci) {
-  if (state.day !== d) { state = { day: d, sel: [], times: {} }; syncHash(); }
+  if (state.day !== d) { state.day = d; syncHash(); }
   view = "day"; render();
   if (ci != null) { const el = document.getElementById("co" + ci); el && el.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start"}); }
 }
