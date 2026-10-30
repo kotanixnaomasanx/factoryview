@@ -346,7 +346,7 @@ const mapAddr = a => a.replace(/〒\d{3}-\d{4}\s*/, "").replace(/（[^）]*）|\
 function routeUrl(addrs) {
   const a = addrs.map(mapAddr); if (!a.length) return "https://www.google.com/maps";
   const dest = a[a.length - 1], wps = a.slice(0, -1);
-  return "https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=" + encodeURIComponent(dest) + (wps.length ? "&waypoints=" + encodeURIComponent(wps.join("|")) : "");
+  return "https://www.google.com/maps/dir/?api=1&travelmode=driving&origin=My+Location&destination=" + encodeURIComponent(dest) + (wps.length ? "&waypoints=" + encodeURIComponent(wps.join("|")) : "");
 }
 const sfvUrl = ci => C[ci][4] ? `https://factory-view.jp/factory/${C[ci][4]}/` : "";
 const addrOf = x => {
