@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px;font-family:system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>SFV2026 取材コース</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: day strip on top, slot picker left, sticky course timeline right (stacks on phone) */
+:root{
+  --bg:#f5f8fb; --panel:#ffffff; --ink:#1b2733; --muted:#5f6f7e; --line:#d9e2ea;
+  --blue:#2f86c9; --blue-soft:#e3f0fa; --salmon:#e58f72; --salmon-soft:#fbe9e2;
+  --warn:#b8611a; --warn-soft:#fdf0e1; --ok:#2e7d57;
+  --sans:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111821; --panel:#18222d; --ink:#e6edf3; --muted:#9aabba; --line:#2b3a48;
+  --blue:#6bb3e8; --blue-soft:#1d3346; --salmon:#f0a68c; --salmon-soft:#3a2620;
+  --warn:#f0a35c; --warn-soft:#3a2a17; --ok:#6cc79a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111821; --panel:#18222d; --ink:#e6edf3; --muted:#9aabba; --line:#2b3a48;
+  --blue:#6bb3e8; --blue-soft:#1d3346; --salmon:#f0a68c; --salmon-soft:#3a2620;
+  --warn:#f0a35c; --warn-soft:#3a2a17; --ok:#6cc79a; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:8px 16px}
+h1{margin:0;font-size:22px;font-weight:900;letter-spacing:.02em;text-wrap:balance}
+h1 span{color:var(--blue)}
+.sub{color:var(--muted);font-size:12.5px;margin:2px 0 0}
+.days{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.day{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:10px;
+  padding:6px 10px;font:inherit;cursor:pointer;display:grid;justify-items:center;min-width:58px}
+.day b{font-family:var(--mono);font-size:15px}
+.day small{font-size:11px;color:var(--muted)}
+.day .n{font-size:10.5px;color:var(--muted)}
+.day.we b{color:var(--salmon)}
+.day[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
+.day[aria-pressed="true"] small,.day[aria-pressed="true"] .n,.day[aria-pressed="true"].we b{color:#fff}
+.day .dot{width:6px;height:6px;border-radius:50%;background:var(--salmon);margin-top:2px;visibility:hidden}
+.day.has .dot{visibility:visible}
+.tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
+.tab{font:inherit;font-weight:700;font-size:13px;border:0;background:none;color:var(--muted);border-radius:7px;padding:6px 14px;cursor:pointer}
+.tab[aria-pressed="true"]{background:var(--blue);color:#fff}
+.chip.ex[aria-pressed="true"]{background:var(--salmon);border-color:var(--salmon);color:#fff}
+.wk{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.wk table{border-collapse:collapse;width:100%;min-width:640px;font-size:12.5px}
+.wk th,.wk td{border-bottom:1px solid var(--line);padding:6px 6px;text-align:center}
+.wk th:first-child,.wk td:first-child{text-align:left;position:sticky;left:0;background:var(--panel);min-width:150px;max-width:190px}
+.wk thead th{font-weight:700;font-size:12px}
+.wk thead th button{font:inherit;border:0;background:none;color:var(--ink);cursor:pointer;display:grid;justify-items:center;gap:0;width:100%;padding:2px}
+.wk thead th button small{color:var(--muted);font-weight:500}
+.wk thead th.we button b{color:var(--salmon)}
+.wk thead th.off{color:var(--muted);opacity:.5}
+.wk .sum td{font-family:var(--mono);font-size:11.5px;vertical-align:bottom;background:var(--bg)}
+.wk .sum td:first-child{background:var(--bg);font-family:var(--sans);font-weight:700}
+.wk .sum .bars{display:grid;justify-items:center;gap:2px}
+.wk .sum .bars i{display:block;width:22px;background:var(--blue);border-radius:3px 3px 0 0}
+.wk .area td{background:var(--bg);color:var(--muted);font-size:11px;letter-spacing:.08em;text-align:left;position:static}
+.wk td.co-n{font-weight:700;font-size:12.5px}
+.wk td.co-n small{display:block;font-weight:500;color:var(--muted);font-size:10.5px}
+.cell{font:inherit;font-family:var(--mono);font-size:12px;border:0;border-radius:6px;width:100%;min-width:40px;padding:5px 2px;cursor:pointer;color:var(--ink)}
+.cell:hover{outline:2px solid var(--blue)}
+.cell small{display:block;font-family:var(--sans);font-size:9.5px;color:var(--muted);letter-spacing:.02em}
+.wk td.tot{font-family:var(--mono);font-weight:600;color:var(--muted)}
+.wkhead{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.legend{font-size:11.5px;color:var(--muted)}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:16px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}}
+.filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:3px 10px;font:inherit;font-size:12.5px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.flabel{font-size:11px;color:var(--muted);letter-spacing:.08em;margin-right:2px}
+input[type=search]{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:5px 10px;min-width:0;flex:1 1 160px}
+.list{display:grid;gap:10px}
+.co{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:8px}
+.co h3{margin:0;font-size:15.5px;font-weight:700;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline}
+.tag{font-size:11px;color:var(--muted);font-weight:500}
+.tag.city{color:var(--blue)}
+.mark{font:inherit;font-size:11.5px;font-weight:700;border:1px dashed var(--line);background:none;color:var(--muted);border-radius:999px;padding:1px 9px;cursor:pointer;margin-left:auto}
+.mark[aria-pressed="true"]{border-style:solid;border-color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.co.done{opacity:.72}
+.donetag{font-size:10px;color:var(--ok);font-weight:700;margin-left:4px}
+.sfv{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--blue);background:var(--blue-soft);border:1px solid var(--blue);border-radius:999px;padding:4px 11px 4px 9px;text-decoration:none;white-space:nowrap;line-height:1.2}
+.sfv:hover{background:var(--blue);color:#fff}
+.sfv svg{width:14px;height:14px;flex:none}
+.it .sfv{margin-top:6px}
+.tag.sta{color:var(--ink);background:var(--bg);border-radius:5px;padding:1px 6px}
+.tag.sta.near{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.slots{display:grid;gap:4px}
+.slot{display:grid;grid-template-columns:96px 96px minmax(0,1fr) 22px;gap:8px;align-items:center;text-align:left;
+  border:1px solid transparent;background:var(--bg);color:var(--ink);border-radius:8px;padding:6px 8px;font:inherit;font-size:13px;cursor:pointer}
+.slot:hover{border-color:var(--blue)}
+.slot .tm{font-family:var(--mono);font-size:12.5px}
+.slot .tm.win{color:var(--muted)}
+.slot .ttl{min-width:0;overflow-wrap:anywhere}
+.slot .pl{display:block;font-size:11px;color:var(--muted)}
+.slot .ck{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line);display:grid;place-items:center;font-size:13px;color:#fff}
+.slot[aria-pressed="true"]{background:var(--blue-soft);border-color:var(--blue)}
+.slot[aria-pressed="true"] .ck{background:var(--blue);border-color:var(--blue)}
+.k{font-size:11px;border-radius:5px;padding:1px 6px;justify-self:start;white-space:nowrap}
+.k-見学{background:var(--blue-soft);color:var(--blue)}
+.k-ワークショップ{background:var(--salmon-soft);color:var(--salmon)}
+.k-物販・展示{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+.k-その他{background:var(--line);color:var(--muted)}
+@media (max-width:520px){.slot{grid-template-columns:84px minmax(0,1fr) 22px}.slot .k{grid-column:2;grid-row:1}.slot .ttl{grid-column:1/3}.slot .ck{grid-column:3;grid-row:1/3}}
+.empty{color:var(--muted);padding:24px;text-align:center;border:1px dashed var(--line);border-radius:12px}
+aside{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:12px}
+@media (max-width:900px){aside{position:static}}
+aside h2{margin:0;font-size:17px;font-weight:900;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+aside h2 small{font-size:12px;color:var(--muted);font-weight:500}
+.shared{background:var(--salmon-soft);color:var(--ink);border-radius:8px;padding:8px 10px;font-size:12.5px}
+.bar{position:relative;height:30px;border-radius:6px;background:var(--bg);overflow:hidden}
+.bar i{position:absolute;top:5px;bottom:5px;border-radius:4px;background:var(--blue);opacity:.85}
+.bar i.ov{background:var(--warn)}
+.ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
+.tl{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.it{display:grid;grid-template-columns:62px minmax(0,1fr) 26px;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.it:first-child{border-top:0}
+.it .t{font-family:var(--mono);font-size:13px;font-weight:600}
+.it .t small{display:block;font-weight:500;color:var(--muted);font-size:11px}
+.it .c{font-weight:700}
+.it .d{font-size:12.5px;overflow-wrap:anywhere}
+.it .a{font-size:11.5px;color:var(--muted);overflow-wrap:anywhere}
+.it input[type=time]{font:inherit;font-family:var(--mono);font-size:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:6px;padding:1px 4px;width:96px;margin-top:4px}
+.rm{border:0;background:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;align-self:start;padding:2px}
+.rm:hover{color:var(--warn)}
+.note{grid-column:1/-1;font-size:11.5px;color:var(--muted);display:flex;gap:6px;align-items:center;margin-top:-4px}
+.note.warn{color:var(--warn);background:var(--warn-soft);border-radius:6px;padding:3px 8px}
+.acts{display:grid;gap:6px}
+.btn{font:inherit;font-weight:700;border-radius:9px;padding:9px 12px;cursor:pointer;border:1px solid var(--blue);background:var(--blue);color:#fff;text-align:center;text-decoration:none}
+.btn.ghost{background:transparent;color:var(--blue)}
+.btn:disabled{opacity:.45;cursor:default}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.cal{font-size:11.5px;color:var(--blue);text-decoration:none;white-space:nowrap}
+.cal:hover{text-decoration:underline}
+.auto{border:1px solid var(--blue);background:var(--blue-soft);border-radius:10px;padding:10px 12px;display:grid;gap:8px}
+.auto h3{margin:0;font-size:13px;font-weight:700}
+.auto .opts{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:12px}
+.auto input[type=time]{font:inherit;font-family:var(--mono);font-size:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:2px 4px}
+.wk .auto-row td{background:var(--blue-soft);font-size:11.5px}
+.wk .auto-row button{font:inherit;border:0;background:var(--panel);color:var(--blue);border-radius:6px;padding:3px 6px;cursor:pointer;font-weight:700}
+.once{font-size:10.5px;font-weight:700;color:#fff;background:var(--salmon);border-radius:5px;padding:1px 6px;margin-left:6px;white-space:nowrap}
+.st{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+.st table{border-collapse:collapse;width:100%;min-width:600px;font-size:13px}
+.st th,.st td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:middle}
+.st th,.st td:nth-child(2),.st td:nth-child(3),.st td:nth-child(5),.st .mark{white-space:nowrap}
+.st th{font-size:11.5px;color:var(--muted);font-weight:500;letter-spacing:.04em}
+.st td.num{font-family:var(--mono);text-align:right}
+.st tr.is-done td{color:var(--muted)}
+.st .grp td{background:var(--bg);font-weight:700;font-size:12px}
+.stsum{display:flex;flex-wrap:wrap;gap:8px 18px;margin-bottom:10px;font-size:13px}
+.stsum b{font-family:var(--mono);font-size:18px;margin-right:2px}
+.calbox{border-top:1px solid var(--line);padding-top:10px;display:grid;gap:6px}
+.calbox h3{margin:0;font-size:13px;font-weight:700}
+.calbox ol{margin:0;padding-left:1.3em;font-size:11.5px;color:var(--muted)}
+.toast{font-size:12px;color:var(--ok);min-height:1.2em}
+.urlbox{font-family:var(--mono);font-size:11px;word-break:break-all;background:var(--bg);border-radius:6px;padding:6px 8px;color:var(--muted);user-select:all}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--salmon);outline-offset:2px}
+.hint{font-size:11.5px;color:var(--muted);margin:0}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1><span>SFV2026</span> 取材コース</h1>
+      <p class="sub">日付を選び、回る企業のコマを選択 → リンクで共有。11/4〜11/23・<span id="totalCo"></span>社</p>
+    </div>
+  </header>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+    <div class="tabs" role="group" aria-label="表示">
+      <button class="tab" id="tabDay">日別で選ぶ</button>
+      <button class="tab" id="tabWeek">週ごとに見る</button>
+    </div>
+    <span class="legend" id="viewHint"></span>
+  </div>
+  <nav class="days" id="days" aria-label="日付"></nav>
+  <div class="main">
+    <section>
+      <div class="filters" id="fCity"></div>
+      <div class="filters" id="fKind"></div>
+      <div class="filters" id="fSta"></div>
+      <div class="filters"><input type="search" id="q" placeholder="企業名・企画名で絞り込み"></div>
+      <p class="hint" style="margin:-4px 0 4px" id="doneStatus"></p>
+      <p class="hint" style="margin:0 0 10px">駅からの距離は、会場の町丁目の中心から最寄り駅・電停までの直線距離をもとにした目安です（徒歩時間は道のり係数1.3・分速80mで換算）。</p>
+      <div class="list" id="list"></div>
+      <div id="week" hidden></div>
+      <div id="status" hidden></div>
+    </section>
+    <aside aria-label="取材コース">
+      <h2 id="cTitle">取材コース <small></small></h2>
+      <div class="auto">
+        <h3>おすすめコースを自動作成</h3>
+        <div class="opts">
+          <label>出発 <input type="time" id="aStart" value="09:00" step="900"></label>
+          <label>終了 <input type="time" id="aEnd" value="17:30" step="900"></label>
+          <label><input type="checkbox" id="aLunch" checked> 昼休憩 12:00〜13:00</label>
+          <label><input type="checkbox" id="aOnce" checked> 1回きりの企画を優先</label>
+        </div>
+        <button class="btn" id="autoBtn">この日のコースを自動で組む</button>
+        <p class="hint">今の絞り込み（エリア・種別・駅から・取材済み・検索）の範囲で、車の移動時間を見込みながら、できるだけ多くの企業を回れる順番に組みます。「1回きりの企画を優先」にすると、会期中その日しかない企画を1件で約2社分の重みで選びます。今のコースは置き換わります。</p>
+      </div>
+      <div class="shared" id="sharedNote" hidden>共有されたコースを表示しています。コマの追加・削除をするとリンクも更新されます。</div>
+      <div>
+        <div class="bar" id="bar"></div>
+        <div class="ticks"><span>9</span><span>11</span><span>13</span><span>15</span><span>17</span><span>19</span><span>21</span></div>
+      </div>
+      <ol class="tl" id="tl"></ol>
+      <p class="hint" id="emptyHint">左のリストからコマを選ぶと、ここに時間順で並びます。</p>
+      <div class="acts">
+        <button class="btn" id="copyLink">共有リンクをコピー</button>
+        <div class="row2">
+          <button class="btn ghost" id="copyText">行程をテキストでコピー</button>
+          <a class="btn ghost" id="route" href="#" target="_blank" rel="noopener">Googleマップで経路</a>
+        </div>
+        <div class="calbox">
+          <h3>Googleカレンダーへ</h3>
+          <button class="btn" id="saveCsv">カレンダー用データ（CSV）を保存</button>
+          <ol>
+            <li>上のボタンでCSVを保存</li>
+            <li>パソコンのGoogleカレンダーで「設定」→「インポート/エクスポート」</li>
+            <li>保存したCSVと追加先のカレンダーを選んで「インポート」</li>
+          </ol>
+          <p class="hint">1件ずつ入れる場合は、各コマの「＋カレンダー」から追加できます。</p>
+        </div>
+        <button class="btn ghost" id="clear">このコースをクリア</button>
+        <div class="toast" id="toast" aria-live="polite"></div>
+        <div class="urlbox" id="urlbox" hidden></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const ARTIFACT_URL = "https://claude.ai/artifact/SVbYHHr4gF8upA7RjU4cGD";
+const DATA = {"C":[["瀬戸内いとなみ舎","江田島市","食品・飲料","広島県江田島市能美町中町3769-1","itonamisha"],["塚本木工所","福山市","家具・木工","広島県福山市北本庄2-8-9","tsukamoto-mokko"],["北川製作所","府中市","金属・機械","広島県府中市元町424-10","kitagawa"],["STUDIO MOO","府中市","家具・木工","広島県府中市鵜飼町800-85","moo"],["モノミラ","府中市","金属・機械","府中市中須町1400-3","monomira"],["近藤","福山市","要確認","広島県福山市神辺八尋1851-1","kondowwh"],["センナリ","広島市","食品・飲料","広島市安佐北区安佐町久地2683-25","sennari-oochi"],["研創","広島市","金属・機械","広島市安佐北区上深川町448","kensoh"],["かこ川商店","福山市","環境・リサイクル","福山市神辺町川南873-8(地域共創拠点areal wakka)","kakogawa"],["チヨダパック","北広島町","印刷・包装・看板","広島県山県郡北広島町木次307","c-pack"],["一場木工所","三次市","家具・木工","広島県三次市上志和地町195-1","ichibamokko"],["マルケイ木工","府中市","家具・木工","広島県府中市栗柄町3228-2","marukei-woodworks"],["NEXYCL","広島市","環境・リサイクル","広島県広島市中区河原町3-3","nexycle"],["文宏堂","熊野町","熊野筆","広島県安芸郡熊野町城之堀3丁目4-1  株式会社文宏堂","bunkoudou"],["仿古堂","熊野町","熊野筆","広島県安芸郡熊野町出来庭10-6-23","houkouodou"],["東作 鬼笙堂","広島市","伝統工芸","広島県広島市安芸区阿戸町399","kisodo"],["FORESTWORKER","庄原市","家具・木工","（美湯の森）〒727-0007 広島県庄原市宮内町７２７ 0007","hibarings"],["広島金具製作所","福山市","金属・機械","広島県福山市南本庄2-12-10","hirokane-m"],["オーザック","福山市","金属・機械","広島県福山市鞆町後地26-229","auzac"],["スピングルカンパニー","府中市","繊維・アパレル","広島県府中市府中町74-1","spingle"],["東洋電装","広島市","金属・機械","広島県広島市安佐北区可部南3丁目6番18号","t-denso"],["曙工芸","福山市","家具・木工","〒729-3106 広島県福山市新市町上安井368-1","kirihako"],["アイ・エム・シーユナイテッド","広島市","金属・機械","広島市安佐北区安佐町飯室2541-1","imcu"],["アルファ企画","福山市","繊維・アパレル","広島県福山市神辺町道上2635","alphajp"],["中山熔断","福山市","金属・機械","株式会社オーザック:広島県福山市鞆町後地26-229(13日(金)は合同開催)集合はこちらへ","nakayama-youdan"],["豊田産業","府中市","家具・木工","広島県府中市三郎丸町238","oitachi"],["土井木工","府中市","家具・木工","広島県府中市府川町57-1","doikagu"],["日本デリバリーサービス","福山市","繊維・アパレル","広島県福山市御幸町上岩成614-1","jdscorp"],["松葉製作所","府中市","家具・木工","広島県府中市土生町1492-1","matsuba-factory"],["ユダ木工","廿日市市","家具・木工","広島県廿日市市木材港北7-28","yudawood"],["iti SETOUCHI","福山市","デジタルファブ・拠点","〒720-0067 広島県福山市西町1-1-1 1F","iti-setouchi"],["晃祐堂","熊野町","熊野筆","広島県安芸郡熊野町平谷4-4-7","koyudo"],["太閤テックス","広島市","金属・機械","広島市安佐北区可部町南原208","taikotechs"],["タテイシ広美社","府中市","印刷・包装・看板","〒726-0025 広島県府中市河南町114","t-kobisha"],["藤井リボン工場","福山市","繊維・アパレル","広島県福山市神辺町川南2866","fujiiribbon"],["高山清","広島市","伝統工芸","広島市中区堀川町2-17","takayamakiyoshi"],["瑞穂","熊野町","熊野筆","広島県安芸郡熊野町萩原二丁目7−35","mizuho-brush"],["三木工作","福山市","金属・機械","広島県福山市神辺町下御領1033","mikikousaku"],["若葉家具","府中市","家具・木工","府中市高木町1201-1","wakabakagu"],["光陽産業","笠岡市","要確認","岡山県笠岡市新賀777","koyo-gt"],["DENTO","府中市","家具・木工","広島県府中市上下町階見1503","dentou-kougei"],["福山鋳造","笠岡市","金属・機械","岡山県笠岡市緑町3-2","fukuchu"],["石田製帽","笠岡市","繊維・アパレル","岡山県笠岡市小平井682","ishidaseibou"],["カイハラ産業","福山市","繊維・アパレル","広島県神石郡神石高原町上1333-1","kaihara-denim"],["TOHOBEADS","広島市","素材・化学","広島市安佐北区大林2丁目12-60","toho-beads"],["タフコム","府中市","金属・機械","広島県府中市出口町505-8","tafcom"],["賀茂鶴酒造","東広島市","食品・飲料","一号蔵直営店 場所:東広島市西条本町9-7","kamotsuru"],["瀬戸内ファクトリービュー","複数","主催","",""]],"S":[["1104",6,"大地蔵直売所","物販・展示","",""],["1104",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1104",13,"触れて、試して、自分に合う一本と出会う熊野筆ショップ","物販・展示","9:00-17:00",""],["1104",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1104",31,"ここでしか買えない熊野筆がたくさん！掘り出し物を見つけよう！","物販・展示","9:00-16:00",""],["1104",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","見学","9:00-16:00",""],["1104",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","ワークショップ","9:00-16:00",""],["1104",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1104",38,"空間×デザイン×家具　：小泉誠デザインのショールームと家具で、暮らしの提案と府中家具の歴史とものづくりを体感","見学","",""],["1104",38,"小泉誠デザインの空間と家具（生活道具）","物販・展示","10:00-18:00","広島県府中市高木町1201-1"],["1104",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1104",47,"トーク：職人をスターに －街ごとひらく産地「市場街」の15年－","その他","18:30-20:30","広島市"],["1104",47,"トーク：オープンファクトリーの次の一歩","その他","18:30-20:45","福山市"],["1105",3,"FROM MATERIAL TO FORM 素材が、家具になるまで。","見学","",""],["1105",3,"MATERIAL DESIGNER 木とイタリアンセラミックを、自分の感性で仕立てる。","ワークショップ","",""],["1105",6,"大地蔵直売所","物販・展示","",""],["1105",8,"大迫力の工場見学！","見学","10:00",""],["1105",8,"ふれあい農園片山（＠farm_katayama）で採れた農作物をお楽しみください","物販・展示","10:00-13:00",""],["1105",8,"片山の恵みとのどかな風景を満喫","その他","11:00-13:00",""],["1105",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1105",13,"触れて、試して、自分に合う一本と出会う熊野筆ショップ","物販・展示","9:00-17:00",""],["1105",15,"表装を触る、知る、作る","ワークショップ","11:00-13:00",""],["1105",15,"掛軸の世界/道具か芸術か","見学","11:00-17:00",""],["1105",15,"表装を触る、知る、作る","ワークショップ","15:00-17:00",""],["1105",20,"DXで工場はここまで変わる！製造現場のリアルを見学","見学","10:00-12:00",""],["1105",28,"一つひとつ、手で仕上げる。木のプロダクトが生まれる現場へ","見学","10:00",""],["1105",28,"一つひとつ、手で仕上げる。木のプロダクトが生まれる現場へ","見学","11:00",""],["1105",28,"一つひとつ、手で仕上げる。木のプロダクトが生まれる現場へ","見学","14:00",""],["1105",28,"一つひとつ、手で仕上げる。木のプロダクトが生まれる現場へ","見学","15:00",""],["1105",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1105",31,"ここでしか買えない熊野筆がたくさん！掘り出し物を見つけよう！","物販・展示","9:00-16:00",""],["1105",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","見学","9:00-16:00",""],["1105",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","ワークショップ","9:00-16:00",""],["1105",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1105",36,"化粧筆から画筆、プラモデル筆まで。筆の世界を手に取って","物販・展示","10:00-17:00",""],["1105",38,"若葉家具工場見学：家具づくりへのこだわりを知る","見学","10:00-15:00","福山市駅家町向永谷127-1"],["1105",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1105",46,"醸造蔵見学ツア－","見学","14:00-15:00",""],["1106",3,"FROM MATERIAL TO FORM 素材が、家具になるまで。","見学","",""],["1106",3,"MATERIAL DESIGNER 木とイタリアンセラミックを、自分の感性で仕立てる。","ワークショップ","",""],["1106",6,"大地蔵直売所","物販・展示","",""],["1106",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1106",13,"触れて、試して、自分に合う一本と出会う熊野筆ショップ","物販・展示","9:00-17:00",""],["1106",15,"表装を触る、知る、作る","ワークショップ","11:00-13:00",""],["1106",15,"掛軸の世界/道具か芸術か","見学","11:00-17:00",""],["1106",15,"表装を触る、知る、作る","ワークショップ","15:00-17:00",""],["1106",21,"「桐箱屋さん」の人気商品に触れてみよう！","物販・展示","10:00-15:00",""],["1106",21,"工場見学・ショールーム見学→桐箱の魅力を世界へ！","見学","11:00-12:00",""],["1106",22,"工業の世界にようこそ","見学","10:00-15:00",""],["1106",22,"自分の手で「ものをつくる」楽しさを体験","ワークショップ","10:00-15:00",""],["1106",28,"一つひとつ、手で仕上げる。木のプロダクトが生まれる現場へ","見学","10:00",""],["1106",28,"一つひとつ、手で仕上げる。木のプロダクトが生まれる現場へ","見学","11:00",""],["1106",28,"一つひとつ、手で仕上げる。木のプロダクトが生まれる現場へ","見学","14:00",""],["1106",28,"一つひとつ、手で仕上げる。木のプロダクトが生まれる現場へ","見学","15:00",""],["1106",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1106",31,"ここでしか買えない熊野筆がたくさん！掘り出し物を見つけよう！","物販・展示","9:00-16:00",""],["1106",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","見学","9:00-16:00",""],["1106",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","ワークショップ","9:00-16:00",""],["1106",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1106",36,"化粧筆から画筆、プラモデル筆まで。筆の世界を手に取って","物販・展示","10:00-17:00",""],["1106",38,"空間×デザイン×家具　：小泉誠デザインのショールームと家具で、暮らしの提案と府中家具の歴史とものづくりを体感","見学","",""],["1106",38,"若葉家具工場見学：家具づくりへのこだわりを知る","見学","10:00-15:00","福山市駅家町向永谷127-1"],["1106",38,"小泉誠デザインの空間と家具（生活道具）","物販・展示","10:00-18:00","広島県府中市高木町1201-1"],["1106",44,"（職場見学）世界でも稀有なグラスビーズメーカー TOHOBEADSの工場へぜひお越しください","見学","12:00-14:30",""],["1106",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1107",3,"FROM MATERIAL TO FORM 素材が、家具になるまで。","見学","",""],["1107",3,"MATERIAL DESIGNER 木とイタリアンセラミックを、自分の感性で仕立てる。","ワークショップ","",""],["1107",6,"大地蔵直売所","物販・展示","",""],["1107",6,"「飲めるお酢を見に行こう！」お酢のイメージ変わります。","見学","10:00-12:00",""],["1107",8,"大迫力の工場見学！","見学","10:00",""],["1107",8,"ふれあい農園片山（＠farm_katayama）で採れた農作物をお楽しみください","物販・展示","10:00-13:00",""],["1107",8,"すてるモノが「たからモノ」になる瞬間を体験！","ワークショップ","11:00",""],["1107",9,"包む事の大切さ","見学","11:00",""],["1107",10,"「丸太からおもちゃができるまでを知る」ファクトリーツアー","見学","10:00-10:30",""],["1107",10,"木製おもちゃや木の個性を生かした大人かわいい雑貨販売","物販・展示","10:00-13:00",""],["1107",10,"ヒノキのおむすびキーホルダーづくり","ワークショップ","10:40-11:10",""],["1107",10,"「丸太からおもちゃができるまでを知る」ファクトリーツアー","見学","11:20-11:50",""],["1107",10,"ヒノキのおむすびキーホルダーづくり","ワークショップ","12:00-12:30",""],["1107",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1107",12,"アップサイクルマーケット","物販・展示","10:00-12:00",""],["1107",12,"捨てられるはずだったモノの、新たな価値をデザインしよう  ～アップサイクルクリエイター体験～","見学","10:00-12:00",""],["1107",12,"素材の未来をつくる アップサイクルラボ","ワークショップ","10:00-12:00",""],["1107",12,"アップサイクルマーケット","物販・展示","14:00-16:00",""],["1107",12,"捨てられるはずだったモノの、新たな価値をデザインしよう  ～アップサイクルクリエイター体験～","見学","14:00-16:00",""],["1107",12,"素材の未来をつくる アップサイクルラボ","ワークショップ","14:00-16:00",""],["1107",15,"表装を触る、知る、作る","ワークショップ","11:00-13:00",""],["1107",15,"掛軸の世界/道具か芸術か","見学","11:00-17:00",""],["1107",15,"表装を触る、知る、作る","ワークショップ","15:00-17:00",""],["1107",16,"（一般向け）森を知り、木を知り、製品へ。自分だけのウッドプロダクト。","見学","10:00-12:00","(モクスト)〒729-5811 広島県庄原市高町1512-1 , (美湯の森) 〒727-0007 広島県庄原市宮内町727 0007"],["1107",19,"スピングル  ワークショップ","ワークショップ","10:00-16:00",""],["1107",19,"スピングル アーカイブ展示","物販・展示","10:00-16:00",""],["1107",19,"スピングル 工場見学＆ワークショップ","見学","10:00-16:00",""],["1107",21,"「桐箱屋さん」の人気商品に触れてみよう！","物販・展示","10:00-11:30",""],["1107",21,"桐箱でオリジナル宝箱を作ろう♪","ワークショップ","10:00-11:30",""],["1107",21,"「桐箱屋さん」の人気商品に触れてみよう！","物販・展示","13:00-14:30",""],["1107",21,"桐箱でオリジナル宝箱を作ろう♪","ワークショップ","13:00-14:30",""],["1107",22,"工業の世界にようこそ","見学","10:00-15:00",""],["1107",22,"自分の手で「ものをつくる」楽しさを体験","ワークショップ","10:00-15:00",""],["1107",23,"1本の糸が刺繍になる瞬間を目撃","見学","10:00-11:00",""],["1107",23,"刺繍屋のちいさなギャラリー","物販・展示","10:00-11:00",""],["1107",23,"1本の糸が刺繍になる瞬間を目撃","見学","14:00-15:00",""],["1107",23,"刺繍屋のちいさなギャラリー","物販・展示","14:00-15:00",""],["1107",23,"1本の糸が刺繍になる瞬間を目撃","見学","15:00-16:00",""],["1107",23,"刺繍屋のちいさなギャラリー","物販・展示","15:00-16:00",""],["1107",26,"地域材を活用した家具　森から家具まで、木の履歴ををたどる。","物販・展示","",""],["1107",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","10:00",""],["1107",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","13:00",""],["1107",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","15:00",""],["1107",30,"SFVインフォメーション・センター+デジタル工作室見学","見学","",""],["1107",30,"iti SETOUCHI「Digifab OpenDay」ワークショップ・プログラム","ワークショップ","",""],["1107",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1107",31,"ここでしか買えない熊野筆がたくさん！掘り出し物を見つけよう！","物販・展示","9:00-16:00",""],["1107",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","見学","9:00-16:00",""],["1107",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","ワークショップ","9:00-16:00",""],["1107",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1107",37,"好きな写真を使って、世界に一つのキーホルダー作り","ワークショップ","10:00-16:00",""],["1107",37,"１ミクロンの世界を覗き見る。作る人になったら、何が見える？","見学","10:00-16:00",""],["1107",38,"空間×デザイン×家具　：小泉誠デザインのショールームと家具で、暮らしの提案と府中家具の歴史とものづくりを体感","見学","",""],["1107",38,"工場市","その他","10:00-16:00","福山市駅家町向永谷127-1"],["1107",38,"小泉誠デザインの空間と家具（生活道具）","物販・展示","10:00-18:00","広島県府中市高木町1201-1"],["1107",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1107",46,"醸造蔵見学ツア－","見学","14:00-15:00",""],["1108",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1108",12,"アップサイクルマーケット","物販・展示","10:00-12:00",""],["1108",12,"捨てられるはずだったモノの、新たな価値をデザインしよう  ～アップサイクルクリエイター体験～","見学","10:00-12:00",""],["1108",12,"素材の未来をつくる アップサイクルラボ","ワークショップ","10:00-12:00",""],["1108",12,"アップサイクルマーケット","物販・展示","14:00-16:00",""],["1108",12,"捨てられるはずだったモノの、新たな価値をデザインしよう  ～アップサイクルクリエイター体験～","見学","14:00-16:00",""],["1108",12,"素材の未来をつくる アップサイクルラボ","ワークショップ","14:00-16:00",""],["1108",15,"表装を触る、知る、作る","ワークショップ","11:00-13:00",""],["1108",15,"掛軸の世界/道具か芸術か","見学","11:00-17:00",""],["1108",15,"表装を触る、知る、作る","ワークショップ","15:00-17:00",""],["1108",16,"（一般向け）森を知り、木を知り、製品へ。自分だけのウッドプロダクト。","見学","10:00-12:00","(モクスト)〒729-5811 広島県庄原市高町1512-1 , (美湯の森) 〒727-0007 広島県庄原市宮内町727 0007"],["1108",19,"スピングル  ワークショップ","ワークショップ","10:00",""],["1108",19,"スピングル アーカイブ展示","物販・展示","10:00",""],["1108",23,"1本の糸が刺繍になる瞬間を目撃","見学","10:00-11:00",""],["1108",23,"刺繍屋のちいさなギャラリー","物販・展示","10:00-11:00",""],["1108",23,"1本の糸が刺繍になる瞬間を目撃","見学","14:00-15:00",""],["1108",23,"刺繍屋のちいさなギャラリー","物販・展示","14:00-15:00",""],["1108",23,"1本の糸が刺繍になる瞬間を目撃","見学","15:00-16:00",""],["1108",23,"刺繍屋のちいさなギャラリー","物販・展示","15:00-16:00",""],["1108",26,"地域材を活用した家具　森から家具まで、木の履歴ををたどる。","物販・展示","",""],["1108",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","10:00",""],["1108",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","13:00",""],["1108",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","15:00",""],["1108",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1108",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1108",37,"好きな写真を使って、世界に一つのキーホルダー作り","ワークショップ","10:00-16:00",""],["1108",37,"１ミクロンの世界を覗き見る。作る人になったら、何が見える？","見学","10:00-16:00",""],["1108",38,"空間×デザイン×家具　：小泉誠デザインのショールームと家具で、暮らしの提案と府中家具の歴史とものづくりを体感","見学","",""],["1108",38,"小泉誠デザインの空間と家具（生活道具）","物販・展示","10:00-18:00","広島県府中市高木町1201-1"],["1108",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1109",6,"大地蔵直売所","物販・展示","",""],["1109",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1109",13,"触れて、試して、自分に合う一本と出会う熊野筆ショップ","物販・展示","9:00-17:00",""],["1109",21,"「桐箱屋さん」の人気商品に触れてみよう！","物販・展示","10:00-15:00",""],["1109",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1109",31,"ここでしか買えない熊野筆がたくさん！掘り出し物を見つけよう！","物販・展示","9:00-16:00",""],["1109",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","見学","9:00-16:00",""],["1109",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","ワークショップ","9:00-16:00",""],["1109",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1109",36,"化粧筆から画筆、プラモデル筆まで。筆の世界を手に取って","物販・展示","10:00-17:00",""],["1109",38,"空間×デザイン×家具　：小泉誠デザインのショールームと家具で、暮らしの提案と府中家具の歴史とものづくりを体感","見学","",""],["1109",38,"小泉誠デザインの空間と家具（生活道具）","物販・展示","10:00-18:00","広島県府中市高木町1201-1"],["1109",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1110",6,"大地蔵直売所","物販・展示","",""],["1110",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1110",13,"熊野書道筆工房見学","見学","13:30-14:30","広島県安芸郡熊野町城之堀3丁目4-1"],["1110",13,"職人と仕上げる、わたしだけの熊野筆づくり","ワークショップ","13:30-14:30","株式会社文宏堂 広島県安芸郡熊野町城之堀3丁目4-1"],["1110",13,"触れて、試して、自分に合う一本と出会う熊野筆ショップ","物販・展示","9:00-17:00",""],["1110",21,"「桐箱屋さん」の人気商品に触れてみよう！","物販・展示","10:00-15:00",""],["1110",21,"工場見学・ショールーム見学→桐箱の魅力を世界へ！","見学","13:00-14:00",""],["1110",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1110",31,"ここでしか買えない熊野筆がたくさん！掘り出し物を見つけよう！","物販・展示","9:00-16:00",""],["1110",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","見学","9:00-16:00",""],["1110",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","ワークショップ","9:00-16:00",""],["1110",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1110",36,"化粧筆から画筆、プラモデル筆まで。筆の世界を手に取って","物販・展示","10:00-17:00",""],["1110",38,"空間×デザイン×家具　：小泉誠デザインのショールームと家具で、暮らしの提案と府中家具の歴史とものづくりを体感","見学","",""],["1110",38,"小泉誠デザインの空間と家具（生活道具）","物販・展示","10:00-18:00","広島県府中市高木町1201-1"],["1110",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1111",6,"大地蔵直売所","物販・展示","",""],["1111",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1111",13,"触れて、試して、自分に合う一本と出会う熊野筆ショップ","物販・展示","9:00-17:00",""],["1111",21,"「桐箱屋さん」の人気商品に触れてみよう！","物販・展示","10:00-15:00",""],["1111",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1111",31,"ここでしか買えない熊野筆がたくさん！掘り出し物を見つけよう！","物販・展示","9:00-16:00",""],["1111",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","見学","9:00-16:00",""],["1111",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","ワークショップ","9:00-16:00",""],["1111",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1111",36,"SHAQUDAファクトリーツアー","見学","10:00","広島県安芸郡熊野町萩原二丁目7-35"],["1111",36,"化粧筆から画筆、プラモデル筆まで。筆の世界を手に取って","物販・展示","10:00-17:00",""],["1111",36,"SHAQUDAファクトリーツアー","見学","11:15","広島県安芸郡熊野町萩原二丁目7-35"],["1111",36,"SHAQUDAファクトリーツアー","見学","13:30","広島県安芸郡熊野町萩原二丁目7-35"],["1111",38,"空間×デザイン×家具　：小泉誠デザインのショールームと家具で、暮らしの提案と府中家具の歴史とものづくりを体感","見学","",""],["1111",38,"小泉誠デザインの空間と家具（生活道具）","物販・展示","10:00-18:00","広島県府中市高木町1201-1"],["1111",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1112",6,"大地蔵直売所","物販・展示","",""],["1112",8,"大迫力の工場見学！","見学","10:00",""],["1112",8,"ふれあい農園片山（＠farm_katayama）で採れた農作物をお楽しみください","物販・展示","10:00-13:00",""],["1112",8,"片山の恵みとのどかな風景を満喫","その他","11:00-13:00",""],["1112",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1112",13,"熊野書道筆工房見学","見学","13:30-14:30","広島県安芸郡熊野町城之堀3丁目4-1"],["1112",13,"職人と仕上げる、わたしだけの熊野筆づくり","ワークショップ","13:30-14:30","株式会社文宏堂 広島県安芸郡熊野町城之堀3丁目4-1"],["1112",13,"触れて、試して、自分に合う一本と出会う熊野筆ショップ","物販・展示","9:00-17:00",""],["1112",15,"表装を触る、知る、作る","ワークショップ","11:00-13:00",""],["1112",15,"掛軸の世界/道具か芸術か","見学","11:00-17:00",""],["1112",15,"表装を触る、知る、作る","ワークショップ","15:00-17:00",""],["1112",21,"「桐箱屋さん」の人気商品に触れてみよう！","物販・展示","10:00-15:00",""],["1112",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1112",31,"ここでしか買えない熊野筆がたくさん！掘り出し物を見つけよう！","物販・展示","9:00-16:00",""],["1112",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","見学","9:00-16:00",""],["1112",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","ワークショップ","9:00-16:00",""],["1112",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1112",36,"化粧筆から画筆、プラモデル筆まで。筆の世界を手に取って","物販・展示","10:00-17:00",""],["1112",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1112",46,"醸造蔵見学ツア－","見学","14:00-15:00",""],["1113",4,"3Dペンを極めて3Dアートを描こう！","ワークショップ","13:00-17:00",""],["1113",4,"金億加工の工場で3Dプリンタを体験！","見学","13:00-17:00",""],["1113",6,"大地蔵直売所","物販・展示","",""],["1113",7,"全国の街を彩る金属製サインメーカー株式会社研創の工場見学会","見学","13:00-15:00",""],["1113",10,"木製おもちゃや木の個性を生かした大人かわいい雑貨販売","物販・展示","10:00-16:00",""],["1113",10,"「丸太からおもちゃができるまでを知る」ファクトリーツアー","見学","13:00-13:30",""],["1113",10,"「丸太からおもちゃができるまでを知る」ファクトリーツアー","見学","14:40-15:10",""],["1113",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1113",13,"触れて、試して、自分に合う一本と出会う熊野筆ショップ","物販・展示","9:00-17:00",""],["1113",15,"表装を触る、知る、作る","ワークショップ","11:00-13:00",""],["1113",15,"掛軸の世界/道具か芸術か","見学","11:00-17:00",""],["1113",15,"表装を触る、知る、作る","ワークショップ","15:00-17:00",""],["1113",16,"（行政・企業向け）官民連携が導く“地域資源最大化”の現場を解剖する","その他","10:00-12:00",""],["1113",17,"建築現場を陰で支える救世主！小さな町工場から全国へ「ものづくり」の熱意を届ける！","見学","10:30-12:00",""],["1113",18,"地域企業のこれからを考える　～鉄のまちで体感する技術と経営～","その他","10:00-12:30",""],["1113",18,"地域企業のこれからを考える　～鉄のまちで体感する技術と経営～","その他","14:00-16:30",""],["1113",21,"「桐箱屋さん」の人気商品に触れてみよう！","物販・展示","10:00-15:00",""],["1113",24,"『極厚メタル切断』オーナメント","物販・展示","10:00-12:30",""],["1113",24,"鉄のまちで体験する技術と経営（オーザック合同）","見学","10:00-12:30",""],["1113",24,"『極厚メタル切断』オーナメント","物販・展示","14:00-16:30",""],["1113",24,"鉄のまちで体験する技術と経営（オーザック合同）","見学","14:00-16:30",""],["1113",26,"地域材を活用した家具　森から家具まで、木の履歴ををたどる。","物販・展示","",""],["1113",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","10:00",""],["1113",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","13:00",""],["1113",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","15:00",""],["1113",27,"選んで、縫って、仕上げて。自分だけのバッグをつくろう！","ワークショップ","10:30-11:30",""],["1113",27,"服好きなら帰れない。秘密のショールームを大公開","物販・展示","11:30-12:00",""],["1113",27,"布から服へ。デニムづくりの舞台裏に潜入！","見学","13:30-14:30",""],["1113",27,"選んで、縫って、仕上げて。自分だけのバッグをつくろう！","ワークショップ","14:30-15:30",""],["1113",27,"服好きなら帰れない。秘密のショールームを大公開","物販・展示","15:30-16:00",""],["1113",27,"布から服へ。デニムづくりの舞台裏に潜入！","見学","9:30-10:30",""],["1113",30,"SFVインフォメーション・センター+デジタル工作室見学","見学","",""],["1113",30,"iti SETOUCHI「Digifab OpenDay」ワークショップ・プログラム","ワークショップ","",""],["1113",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1113",31,"ここでしか買えない熊野筆がたくさん！掘り出し物を見つけよう！","物販・展示","9:00-16:00",""],["1113",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","見学","9:00-16:00",""],["1113",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","ワークショップ","9:00-16:00",""],["1113",32,"岩盤を砕く掘削機の実力を見にいこう。","見学","10:00-12:00",""],["1113",32,"岩盤を砕く掘削機の実力を見にいこう。","見学","13:00-15:00",""],["1113",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1113",36,"化粧筆から画筆、プラモデル筆まで。筆の世界を手に取って","物販・展示","10:00-17:00",""],["1113",38,"空間×デザイン×家具　：小泉誠デザインのショールームと家具で、暮らしの提案と府中家具の歴史とものづくりを体感","見学","",""],["1113",38,"小泉誠デザインの空間と家具（生活道具）","物販・展示","10:00-18:00","広島県府中市高木町1201-1"],["1113",45,"レーザー屋の仕事をチョットだけ見ながら、アロマディフューザー作ろう‼","ワークショップ","10:00-11:30",""],["1113",45,"生活が少し潤うsenmeguの商品(弊社オリジナルブランド）販売","物販・展示","10:00-17:00",""],["1113",45,"レーザー屋の仕事をチョットだけ見ながら、アロマディフューザー作ろう‼","ワークショップ","13:00-14:30",""],["1113",45,"レーザー屋の仕事をチョットだけ見ながら、アロマディフューザー作ろう‼","ワークショップ","15:00-16:30",""],["1113",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1114",4,"3Dペンを極めて3Dアートを描こう！","ワークショップ","13:00-17:00",""],["1114",4,"金億加工の工場で3Dプリンタを体験！","見学","13:00-17:00",""],["1114",6,"大地蔵直売所","物販・展示","",""],["1114",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1114",13,"筆からはじまる、熊野・阿戸のものづくり旅 ― つくり手に出会い、筆・アート・手仕事を巡る一日 ―","その他","","広島県安芸郡熊野町出来庭10-6-23"],["1114",14,"筆のある暮らしに触れるひととき -手しごと＆手書きの魅力再発見の旅-","見学","10:30-12:00",""],["1114",14,"筆のある暮らしに触れるひととき -手しごと＆手書きの魅力再発見の旅-","ワークショップ","10:30-12:00",""],["1114",14,"筆のある暮らしに触れるひととき -手しごと＆手書きの魅力再発見の旅-","物販・展示","10:30-12:00",""],["1114",15,"掛軸の世界/道具か芸術か","見学","11:00-17:00",""],["1114",17,"建築現場を陰で支える救世主！小さな町工場から全国へ「ものづくり」の熱意を届ける！","見学","10:30-12:00",""],["1114",18,"わくわく金属加工体験！　機械の前に立ち、自分で操作してみよう！","ワークショップ","13:30-16:00",""],["1114",18,"鉄の町ふくやまの出発点・鞆の浦にある「ものづくり」の迫力を体験しよう！","見学","13:30-16:00",""],["1114",18,"わくわく金属加工体験！　機械の前に立ち、自分で操作してみよう！","ワークショップ","9:00-11:30",""],["1114",18,"鉄の町ふくやまの出発点・鞆の浦にある「ものづくり」の迫力を体験しよう！","見学","9:00-11:30",""],["1114",24,"『極厚メタル切断』オーナメント","物販・展示","10:00-11:30","株式会社中山熔断:広島県福山市鞆町後地26-178 (14日(土)は中山熔断単独開催)集合はこちらへ"],["1114",24,"炎が鉄を切り裂く瞬間を体感！（単独企画）","見学","10:00-11:30","株式会社中山熔断:広島県福山市鞆町後地26-178 (14日(土)は中山熔断単独開催)集合はこちらへ"],["1114",24,"『極厚メタル切断』オーナメント","物販・展示","14:00-15:30","株式会社中山熔断:広島県福山市鞆町後地26-178 (14日(土)は中山熔断単独開催)集合はこちらへ"],["1114",24,"炎が鉄を切り裂く瞬間を体感！（単独企画）","見学","14:00-15:30","株式会社中山熔断:広島県福山市鞆町後地26-178 (14日(土)は中山熔断単独開催)集合はこちらへ"],["1114",26,"地域材を活用した家具　森から家具まで、木の履歴ををたどる。","物販・展示","",""],["1114",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","10:00",""],["1114",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","13:00",""],["1114",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","15:00",""],["1114",27,"選んで、縫って、仕上げて。自分だけのバッグをつくろう！","ワークショップ","10:30-11:30",""],["1114",27,"服好きなら帰れない。秘密のショールームを大公開","物販・展示","11:30-12:00",""],["1114",27,"布から服へ。デニムづくりの舞台裏に潜入！","見学","13:30-14:30",""],["1114",27,"選んで、縫って、仕上げて。自分だけのバッグをつくろう！","ワークショップ","14:30-15:30",""],["1114",27,"服好きなら帰れない。秘密のショールームを大公開","物販・展示","15:30-16:00",""],["1114",27,"布から服へ。デニムづくりの舞台裏に潜入！","見学","9:30-10:30",""],["1114",29,"【特別企画】社長×彫刻家対談＋ファクトリーツアー","見学","13:00-16:00",""],["1114",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1114",31,"ここでしか買えない熊野筆がたくさん！掘り出し物を見つけよう！","物販・展示","9:00-16:00",""],["1114",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","見学","9:00-16:00",""],["1114",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","ワークショップ","9:00-16:00",""],["1114",32,"岩盤を砕く掘削機の実力を見にいこう。","見学","10:00-12:00",""],["1114",32,"岩盤を砕く掘削機の実力を見にいこう。","見学","13:00-15:00",""],["1114",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1114",36,"SHAQUDAファクトリーツアー","見学","10:00","広島県安芸郡熊野町萩原二丁目7-35"],["1114",36,"ボディブラシづくり・ミニバッグチャームづくりワークショップ　※11/14（土）限定企画","ワークショップ","10:00","広島県安芸郡熊野町萩原二丁目7-35・有限会社瑞穂"],["1114",36,"化粧筆から画筆、プラモデル筆まで。筆の世界を手に取って","物販・展示","10:00-17:00",""],["1114",36,"SHAQUDAファクトリーツアー","見学","11:15","広島県安芸郡熊野町萩原二丁目7-35"],["1114",36,"ボディブラシづくり・ミニバッグチャームづくりワークショップ　※11/14（土）限定企画","ワークショップ","11:15","広島県安芸郡熊野町萩原二丁目7-35・有限会社瑞穂"],["1114",36,"SHAQUDAファクトリーツアー","見学","13:30","広島県安芸郡熊野町萩原二丁目7-35"],["1114",36,"ボディブラシづくり・ミニバッグチャームづくりワークショップ　※11/14（土）限定企画","ワークショップ","13:30","広島県安芸郡熊野町萩原二丁目7-35・有限会社瑞穂"],["1114",38,"空間×デザイン×家具　：小泉誠デザインのショールームと家具で、暮らしの提案と府中家具の歴史とものづくりを体感","見学","",""],["1114",38,"小泉誠デザインの空間と家具（生活道具）","物販・展示","10:00-18:00","広島県府中市高木町1201-1"],["1114",45,"レーザー屋の仕事をチョットだけ見ながら、アロマディフューザー作ろう‼","ワークショップ","10:00-11:30",""],["1114",45,"生活が少し潤うsenmeguの商品(弊社オリジナルブランド）販売","物販・展示","10:00-17:00",""],["1114",45,"レーザー屋の仕事をチョットだけ見ながら、アロマディフューザー作ろう‼","ワークショップ","13:00-14:30",""],["1114",45,"レーザー屋の仕事をチョットだけ見ながら、アロマディフューザー作ろう‼","ワークショップ","15:00-16:30",""],["1114",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1115",5,"100年の技術、次の100年へ","見学","10:00-12:00",""],["1115",5,"小さな手仕事、未来に繋ぐ","物販・展示","10:00-12:00","広島県福山市神辺町八尋1851-1"],["1115",5,"100年の技術、次の100年へ","見学","13:00-15:00",""],["1115",5,"小さな手仕事、未来に繋ぐ","物販・展示","13:00-15:00","広島県福山市神辺町八尋1851-1"],["1115",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1115",15,"表装を触る、知る、作る","ワークショップ","11:00-13:00",""],["1115",15,"掛軸の世界/道具か芸術か","見学","11:00-17:00",""],["1115",15,"表装を触る、知る、作る","ワークショップ","15:00-17:00",""],["1115",26,"地域材を活用した家具　森から家具まで、木の履歴ををたどる。","物販・展示","",""],["1115",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","10:00",""],["1115",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","13:00",""],["1115",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","15:00",""],["1115",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1115",32,"岩盤を砕く掘削機の実力を見にいこう。","見学","10:00-12:00",""],["1115",32,"岩盤を砕く掘削機の実力を見にいこう。","見学","13:00-15:00",""],["1115",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1115",35,"「金箔を使った黄金に輝く鉛筆作り」","ワークショップ","11:00-16:00",""],["1115",35,"伝統工芸手作り体験　金箔鉛筆づくり","見学","11:00-16:00",""],["1115",38,"空間×デザイン×家具　：小泉誠デザインのショールームと家具で、暮らしの提案と府中家具の歴史とものづくりを体感","見学","",""],["1115",38,"小泉誠デザインの空間と家具（生活道具）","物販・展示","10:00-18:00","広島県府中市高木町1201-1"],["1115",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1116",5,"100年の技術、次の100年へ","見学","10:00-12:00",""],["1116",6,"大地蔵直売所","物販・展示","",""],["1116",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1116",13,"触れて、試して、自分に合う一本と出会う熊野筆ショップ","物販・展示","9:00-17:00",""],["1116",16,"（行政・企業向け）官民連携が導く“地域資源最大化”の現場を解剖する","その他","10:00-12:00",""],["1116",21,"「桐箱屋さん」の人気商品に触れてみよう！","物販・展示","10:00-15:00",""],["1116",26,"地域材を活用した家具　森から家具まで、木の履歴ををたどる。","物販・展示","",""],["1116",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","10:00",""],["1116",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","13:00",""],["1116",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","15:00",""],["1116",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1116",31,"ここでしか買えない熊野筆がたくさん！掘り出し物を見つけよう！","物販・展示","9:00-16:00",""],["1116",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","見学","9:00-16:00",""],["1116",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","ワークショップ","9:00-16:00",""],["1116",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1116",36,"化粧筆から画筆、プラモデル筆まで。筆の世界を手に取って","物販・展示","10:00-17:00",""],["1116",38,"空間×デザイン×家具　：小泉誠デザインのショールームと家具で、暮らしの提案と府中家具の歴史とものづくりを体感","見学","",""],["1116",38,"小泉誠デザインの空間と家具（生活道具）","物販・展示","10:00-18:00","広島県府中市高木町1201-1"],["1116",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1117",5,"100年の技術、次の100年へ","見学","10:00-12:00",""],["1117",6,"大地蔵直売所","物販・展示","",""],["1117",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1117",13,"熊野書道筆工房見学","見学","13:30-14:30","広島県安芸郡熊野町城之堀3丁目4-1"],["1117",13,"職人と仕上げる、わたしだけの熊野筆づくり","ワークショップ","13:30-14:30","株式会社文宏堂 広島県安芸郡熊野町城之堀3丁目4-1"],["1117",13,"触れて、試して、自分に合う一本と出会う熊野筆ショップ","物販・展示","9:00-17:00",""],["1117",16,"（行政・企業向け）官民連携が導く“地域資源最大化”の現場を解剖する","その他","10:00-12:00",""],["1117",21,"「桐箱屋さん」の人気商品に触れてみよう！","物販・展示","10:00-15:00",""],["1117",26,"地域材を活用した家具　森から家具まで、木の履歴ををたどる。","物販・展示","",""],["1117",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","10:00",""],["1117",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","13:00",""],["1117",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","15:00",""],["1117",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1117",31,"ここでしか買えない熊野筆がたくさん！掘り出し物を見つけよう！","物販・展示","9:00-16:00",""],["1117",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","見学","9:00-16:00",""],["1117",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","ワークショップ","9:00-16:00",""],["1117",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1117",36,"化粧筆から画筆、プラモデル筆まで。筆の世界を手に取って","物販・展示","10:00-17:00",""],["1117",38,"空間×デザイン×家具　：小泉誠デザインのショールームと家具で、暮らしの提案と府中家具の歴史とものづくりを体感","見学","",""],["1117",38,"小泉誠デザインの空間と家具（生活道具）","物販・展示","10:00-18:00","広島県府中市高木町1201-1"],["1117",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1118",6,"大地蔵直売所","物販・展示","",""],["1118",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1118",13,"触れて、試して、自分に合う一本と出会う熊野筆ショップ","物販・展示","9:00-17:00",""],["1118",16,"（行政・企業向け）官民連携が導く“地域資源最大化”の現場を解剖する","その他","10:00-12:00",""],["1118",21,"「桐箱屋さん」の人気商品に触れてみよう！","物販・展示","10:00-15:00",""],["1118",26,"地域材を活用した家具　森から家具まで、木の履歴ををたどる。","物販・展示","",""],["1118",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","10:00",""],["1118",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","13:00",""],["1118",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","15:00",""],["1118",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1118",31,"ここでしか買えない熊野筆がたくさん！掘り出し物を見つけよう！","物販・展示","9:00-16:00",""],["1118",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","見学","9:00-16:00",""],["1118",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","ワークショップ","9:00-16:00",""],["1118",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1118",36,"SHAQUDAファクトリーツアー","見学","10:00","広島県安芸郡熊野町萩原二丁目7-35"],["1118",36,"化粧筆から画筆、プラモデル筆まで。筆の世界を手に取って","物販・展示","10:00-17:00",""],["1118",36,"SHAQUDAファクトリーツアー","見学","11:15","広島県安芸郡熊野町萩原二丁目7-35"],["1118",36,"SHAQUDAファクトリーツアー","見学","13:30","広島県安芸郡熊野町萩原二丁目7-35"],["1118",38,"空間×デザイン×家具　：小泉誠デザインのショールームと家具で、暮らしの提案と府中家具の歴史とものづくりを体感","見学","",""],["1118",38,"小泉誠デザインの空間と家具（生活道具）","物販・展示","10:00-18:00","広島県府中市高木町1201-1"],["1118",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1119",1,"一生モノを探しに","物販・展示","",""],["1119",1,"職人体験！オリジナル木製小物作り","ワークショップ","10:00-11:00",""],["1119",1,"職人体験！オリジナル木製小物作り","ワークショップ","13:00-14:00",""],["1119",1,"1脚の椅子ができるまで","見学","9:30-16:20",""],["1119",2,"世界のものづくりを支える「チャック」を見よう！","見学","10:00-16:00",""],["1119",2,"世界を掴むチャックの構造を知りながら組み立てよう","ワークショップ","10:00-16:00",""],["1119",6,"大地蔵直売所","物販・展示","",""],["1119",8,"大迫力の工場見学！","見学","10:00",""],["1119",8,"ふれあい農園片山（＠farm_katayama）で採れた農作物をお楽しみください","物販・展示","10:00-13:00",""],["1119",8,"片山の恵みとのどかな風景を満喫","その他","11:00-13:00",""],["1119",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1119",13,"熊野書道筆工房見学","見学","13:30-14:30","広島県安芸郡熊野町城之堀3丁目4-1"],["1119",13,"職人と仕上げる、わたしだけの熊野筆づくり","ワークショップ","13:30-14:30","株式会社文宏堂 広島県安芸郡熊野町城之堀3丁目4-1"],["1119",13,"触れて、試して、自分に合う一本と出会う熊野筆ショップ","物販・展示","9:00-17:00",""],["1119",15,"表装を触る、知る、作る","ワークショップ","11:00-13:00",""],["1119",15,"掛軸の世界/道具か芸術か","見学","11:00-17:00",""],["1119",15,"表装を触る、知る、作る","ワークショップ","15:00-17:00",""],["1119",16,"（行政・企業向け）官民連携が導く“地域資源最大化”の現場を解剖する","その他","10:00-12:00",""],["1119",20,"DXで工場はここまで変わる！製造現場のリアルを見学","見学","10:00-12:00",""],["1119",20,"DXで工場はここまで変わる！製造現場のリアルを見学","見学","13:00-15:00",""],["1119",20,"DXで工場はここまで変わる！製造現場のリアルを見学","見学","15:00-17:00",""],["1119",21,"「桐箱屋さん」の人気商品に触れてみよう！","物販・展示","10:00-15:00",""],["1119",21,"工場見学・ショールーム見学→桐箱の魅力を世界へ！","見学","11:00-12:00",""],["1119",26,"地域材を活用した家具　森から家具まで、木の履歴ををたどる。","物販・展示","",""],["1119",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","10:00",""],["1119",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","13:00",""],["1119",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","15:00",""],["1119",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1119",31,"ここでしか買えない熊野筆がたくさん！掘り出し物を見つけよう！","物販・展示","9:00-16:00",""],["1119",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","見学","9:00-16:00",""],["1119",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","ワークショップ","9:00-16:00",""],["1119",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1119",36,"化粧筆から画筆、プラモデル筆まで。筆の世界を手に取って","物販・展示","10:00-17:00",""],["1119",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1119",46,"醸造蔵見学ツア－","見学","14:00-15:00",""],["1120",1,"一生モノを探しに","物販・展示","",""],["1120",1,"職人体験！オリジナル木製小物作り","ワークショップ","10:00-11:00",""],["1120",1,"職人体験！オリジナル木製小物作り","ワークショップ","13:00-14:00",""],["1120",1,"1脚の椅子ができるまで","見学","9:30-16:20",""],["1120",2,"世界のものづくりを支える「チャック」を見よう！","見学","10:00-16:00",""],["1120",2,"世界を掴むチャックの構造を知りながら組み立てよう","ワークショップ","10:00-16:00",""],["1120",6,"大地蔵直売所","物販・展示","",""],["1120",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1120",13,"触れて、試して、自分に合う一本と出会う熊野筆ショップ","物販・展示","9:00-17:00",""],["1120",14,"筆のある暮らしに触れるひととき -手しごと＆手書きの魅力再発見の旅-","見学","13:30-15:00",""],["1120",14,"筆のある暮らしに触れるひととき -手しごと＆手書きの魅力再発見の旅-","ワークショップ","13:30-15:00",""],["1120",14,"筆のある暮らしに触れるひととき -手しごと＆手書きの魅力再発見の旅-","物販・展示","13:30-15:00",""],["1120",15,"表装を触る、知る、作る","ワークショップ","11:00-13:00",""],["1120",15,"掛軸の世界/道具か芸術か","見学","11:00-17:00",""],["1120",15,"表装を触る、知る、作る","ワークショップ","15:00-17:00",""],["1120",16,"（行政・企業向け）官民連携が導く“地域資源最大化”の現場を解剖する","その他","10:00-12:00",""],["1120",25,"工場見学で加工した部材を使って小さい椅子や木製雑貨を作ってみよう！","ワークショップ","10:00-12:00",""],["1120",25,"昔ながらの超アナログ木工体験＆ワークショップ","見学","10:00-12:00",""],["1120",25,"工場見学で加工した部材を使って小さい椅子や木製雑貨を作ってみよう！","ワークショップ","14:00-16:00",""],["1120",25,"昔ながらの超アナログ木工体験＆ワークショップ","見学","14:00-16:00",""],["1120",26,"地域材を活用した家具　森から家具まで、木の履歴ををたどる。","物販・展示","",""],["1120",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","10:00",""],["1120",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","13:00",""],["1120",26,"TRACEABLE TREE この家具の木が、どこの森から来たのか","見学","15:00",""],["1120",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1120",31,"ここでしか買えない熊野筆がたくさん！掘り出し物を見つけよう！","物販・展示","9:00-16:00",""],["1120",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","見学","9:00-16:00",""],["1120",31,"まるっと熊野筆体験ツアー　～オリジナル化粧筆手作り体験～","ワークショップ","9:00-16:00",""],["1120",33,"なんだか気になる、この囲碁。 学生と作った、タテイシ広美社の新しい挑戦","物販・展示","",""],["1120",33,"看板の工場でランチしよう！つくる人たちと過ごす、とっておきの昼休み","その他","",""],["1120",33,"街の看板、その裏側へ。","見学","",""],["1120",33,"購入者限定！世界にひとつの「onogo」をつくろう！","ワークショップ","",""],["1120",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1120",36,"化粧筆から画筆、プラモデル筆まで。筆の世界を手に取って","物販・展示","10:00-17:00",""],["1120",38,"空間×デザイン×家具　：小泉誠デザインのショールームと家具で、暮らしの提案と府中家具の歴史とものづくりを体感","見学","",""],["1120",38,"小泉誠デザインの空間と家具（生活道具）","物販・展示","10:00-18:00","広島県府中市高木町1201-1"],["1120",39,"笠岡市の”ものづくり企業”を観よう！","見学","10:00-11:00",""],["1120",39,"笠岡市の”ものづくり企業”を観よう！","見学","13:00-14:00",""],["1120",41,"1500度の鋳造の世界を大公開！","見学","10:00-11:00",""],["1120",41,"1500度の鋳造の世界を大公開！","見学","13:00-14:00",""],["1120",42,"自分に似合う帽子を探そう","物販・展示","10:00-11:00","笠岡市小平井682"],["1120",42,"麦わら帽子ってヒモをグルグル縫うんだけなんだって","見学","10:00-11:00",""],["1120",42,"自分に似合う帽子を探そう","物販・展示","13:00-14:00","笠岡市小平井682"],["1120",42,"麦わら帽子ってヒモをグルグル縫うんだけなんだって","見学","13:00-14:00",""],["1120",43,"デニム生地 / 国内生産シェア率NO.1！★カイハラが100年以上続く秘密を教えます★","見学","13:00-15:00",""],["1120",43,"デニム生地 / 国内生産シェア率NO.1！★カイハラが100年以上続く秘密を教えます★","見学","9:30-11:30",""],["1120",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1121",0,"世界最高賞を受賞した江田島のオリーブオイルを鑑定士とともに味わいつくす90分","その他","10:30-12:00",""],["1121",1,"一生モノを探しに","物販・展示","",""],["1121",1,"職人体験！オリジナル木製小物作り","ワークショップ","10:00-11:00",""],["1121",1,"職人体験！オリジナル木製小物作り","ワークショップ","13:00-14:00",""],["1121",1,"1脚の椅子ができるまで","見学","9:30-16:20",""],["1121",2,"世界のものづくりを支える「チャック」を見よう！","見学","10:00-16:00",""],["1121",2,"世界を掴むチャックの構造を知りながら組み立てよう","ワークショップ","10:00-16:00",""],["1121",6,"大地蔵直売所","物販・展示","",""],["1121",6,"「飲めるお酢を見に行こう！」お酢のイメージ変わります。","見学","10:00-12:00",""],["1121",7,"全国の街を彩る金属製サインメーカー株式会社研創のワークショップ","ワークショップ","13:00-15:00",""],["1121",8,"大迫力の工場見学！","見学","10:00",""],["1121",8,"ふれあい農園片山（＠farm_katayama）で採れた農作物をお楽しみください","物販・展示","10:00-13:00",""],["1121",8,"すてるモノが「たからモノ」になる瞬間を体験！","ワークショップ","11:00",""],["1121",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1121",11,"家具の木でクリスマスツリーをつくろう","ワークショップ","10:30-13:00",""],["1121",11,"家具の木でクリスマスツリーをつくろう","ワークショップ","14:00-16:30",""],["1121",13,"熊野書道筆工房見学","見学","10:00-11:00","広島県安芸郡熊野町城之堀3丁目4-1"],["1121",13,"職人と仕上げる、わたしだけの熊野筆づくり","ワークショップ","10:00-11:00","株式会社文宏堂 広島県安芸郡熊野町城之堀3丁目4-1"],["1121",13,"触れて、試して、自分に合う一本と出会う熊野筆ショップ","物販・展示","10:00-11:00",""],["1121",15,"表装を触る、知る、作る","ワークショップ","11:00-13:00",""],["1121",15,"掛軸の世界/道具か芸術か","見学","11:00-17:00",""],["1121",15,"表装を触る、知る、作る","ワークショップ","15:00-17:00",""],["1121",25,"工場見学で加工した部材を使って小さい椅子や木製雑貨を作ってみよう！","ワークショップ","10:00-12:00",""],["1121",25,"昔ながらの超アナログ木工体験＆ワークショップ","見学","10:00-12:00",""],["1121",25,"工場見学で加工した部材を使って小さい椅子や木製雑貨を作ってみよう！","ワークショップ","14:00-16:00",""],["1121",25,"昔ながらの超アナログ木工体験＆ワークショップ","見学","14:00-16:00",""],["1121",30,"SFVインフォメーション・センター+デジタル工作室見学","見学","",""],["1121",30,"iti SETOUCHI「Digifab OpenDay」ワークショップ・プログラム","ワークショップ","",""],["1121",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1121",33,"なんだか気になる、この囲碁。 学生と作った、タテイシ広美社の新しい挑戦","物販・展示","",""],["1121",33,"看板の工場でランチしよう！つくる人たちと過ごす、とっておきの昼休み","その他","",""],["1121",33,"街の看板、その裏側へ。","見学","",""],["1121",33,"購入者限定！世界にひとつの「onogo」をつくろう！","ワークショップ","",""],["1121",34,"伝統の継承","見学","10:00-11:00",""],["1121",34,"眞田紐の新しい世界","物販・展示","10:00-11:00",""],["1121",34,"伝統の継承","見学","13:00-14:00",""],["1121",34,"眞田紐の新しい世界","物販・展示","13:00-14:00",""],["1121",34,"伝統の継承","見学","15:00-16:00",""],["1121",34,"眞田紐の新しい世界","物販・展示","15:00-16:00",""],["1121",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1121",38,"空間×デザイン×家具　：小泉誠デザインのショールームと家具で、暮らしの提案と府中家具の歴史とものづくりを体感","見学","",""],["1121",38,"マルシェ","その他","10:00-15:00",""],["1121",38,"小泉誠デザインの空間と家具（生活道具）","物販・展示","10:00-18:00","広島県府中市高木町1201-1"],["1121",38,"小泉誠トーク＆古道具のワークショップ","ワークショップ","13:00-14:30","府中市高木町1201-1 わかばかぐショールーム2階"],["1121",39,"笠岡市の”ものづくり企業”を体験しよう！","その他","10:00-12:00","岡山県笠岡市大島中2553"],["1121",39,"笠岡市の”ものづくり企業”を体験しよう！","その他","13:00-15:00","岡山県笠岡市大島中2553"],["1121",40,"額縁から、家具へ。DENTOの木工所を歩く45分","見学","10:30","広島県府中市上下町階見1503(工場・ショールーム)"],["1121",40,"額縁から、家具へ。DENTOの木工所を歩く45分","見学","11:30","広島県府中市上下町階見1503(工場・ショールーム)"],["1121",40,"額縁から、家具へ。DENTOの木工所を歩く45分","見学","13:30","広島県府中市上下町階見1503(工場・ショールーム)"],["1121",40,"【代表フクマキが直接対応※要予約】額縁・家具のオーダー＆お手入れ＆修理 ご相談カウンター","その他","9:00-10:00","広島県府中市上下町階見1384(階見植物園)※工場から徒歩約3分"],["1121",40,"DENTO工場市 during SFV2026","物販・展示","9:00-15:00",""],["1121",40,"額をつくる、写真を納める、木に色をのせる。","ワークショップ","9:00-15:00",""],["1121",40,"額縁から、家具へ。DENTOの木工所を歩く45分","見学","9:30","広島県府中市上下町階見1503(工場・ショールーム)"],["1121",41,"キーホルダー・木の玩具制作、砂遊び","ワークショップ","10:00-12:00",""],["1121",41,"キーホルダー・木の玩具制作、砂遊び","ワークショップ","13:00-15:00","岡山県笠岡市大島中2553(旧大島東小学校)"],["1121",42,"自分に似合う帽子を探そう","物販・展示","10:00-11:00","笠岡市大島中2553"],["1121",42,"自分だけの帽子を作ろう","ワークショップ","10:00-12:00","笠岡市大島中2553 シェアアトリエ海の校舎石田製帽教室"],["1121",42,"自分に似合う帽子を探そう","物販・展示","13:00-14:00","笠岡市大島中2553"],["1121",42,"自分だけの帽子を作ろう","ワークショップ","13:00-15:00","笠岡市大島中2553 シェアアトリエ海の校舎石田製帽教室"],["1121",43,"デニム生地 / 国内生産シェア率NO.1！★カイハラが100年以上続く秘密を教えます★","見学","13:00-15:00","広島県福山市新市町常1450"],["1121",43,"デニム生地 / 国内生産シェア率NO.1！★カイハラが100年以上続く秘密を教えます★","見学","9:00-11:00","広島県福山市新市町常1450"],["1121",44,"TOHOBEADSノミノイチin Factory を開催","物販・展示","10:00-15:00",""],["1121",44,"大林木と食の里まつり","その他","10:00-15:00",""],["1121",44,"（一般）世界でも稀有なグラスビーズメーカー TOHOBEADSの工場へぜひお越しください","見学","13:45-14:45",""],["1121",44,"（一般）世界でも稀有なグラスビーズメーカー TOHOBEADSの工場へぜひお越しください","見学","9:15-10:15",""],["1121",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1121",46,"醸造蔵見学ツア－","見学","14:00-15:00",""],["1122",0,"世界最高賞を受賞した江田島のオリーブオイルを鑑定士とともに味わいつくす90分","その他","10:30-12:00",""],["1122",1,"一生モノを探しに","物販・展示","",""],["1122",1,"職人体験！オリジナル木製小物作り","ワークショップ","10:00-11:00",""],["1122",1,"職人体験！オリジナル木製小物作り","ワークショップ","13:00-14:00",""],["1122",11,"木と暮らす 〜神石高原の森から私たちの暮らしへ〜","物販・展示","10:00-17:00",""],["1122",11,"家具の木でクリスマスツリーをつくろう","ワークショップ","10:30-13:00",""],["1122",11,"家具の木でクリスマスツリーをつくろう","ワークショップ","14:00-16:30",""],["1122",15,"表装を触る、知る、作る","ワークショップ","11:00-13:00",""],["1122",15,"掛軸の世界/道具か芸術か","見学","11:00-17:00",""],["1122",15,"表装を触る、知る、作る","ワークショップ","15:00-17:00",""],["1122",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1122",34,"伝統の継承","見学","10:00-11:00",""],["1122",34,"眞田紐の新しい世界","物販・展示","10:00-11:00",""],["1122",34,"伝統の継承","見学","13:00-14:00",""],["1122",34,"眞田紐の新しい世界","物販・展示","13:00-14:00",""],["1122",34,"伝統の継承","見学","15:00-16:00",""],["1122",34,"眞田紐の新しい世界","物販・展示","15:00-16:00",""],["1122",35,"江戸時代からの伝統工芸　漆の工房「広島漆芸」の見学とオンリーワンの黄金鉛筆が作れます！","物販・展示","10:00-17:00",""],["1122",38,"空間×デザイン×家具　：小泉誠デザインのショールームと家具で、暮らしの提案と府中家具の歴史とものづくりを体感","見学","",""],["1122",38,"小泉誠デザインの空間と家具（生活道具）","物販・展示","10:00-18:00","広島県府中市高木町1201-1"],["1122",40,"額縁から、家具へ。DENTOの木工所を歩く45分","見学","10:30","広島県府中市上下町階見1503(工場・ショールーム)"],["1122",40,"額縁から、家具へ。DENTOの木工所を歩く45分","見学","11:30","広島県府中市上下町階見1503(工場・ショールーム)"],["1122",40,"額縁から、家具へ。DENTOの木工所を歩く45分","見学","13:30","広島県府中市上下町階見1503(工場・ショールーム)"],["1122",40,"【代表フクマキが直接対応※要予約】額縁・家具のオーダー＆お手入れ＆修理 ご相談カウンター","その他","9:00-10:00","広島県府中市上下町階見1384(階見植物園)※工場から徒歩約3分"],["1122",40,"DENTO工場市 during SFV2026","物販・展示","9:00-15:00",""],["1122",40,"額をつくる、写真を納める、木に色をのせる。","ワークショップ","9:00-15:00",""],["1122",40,"額縁から、家具へ。DENTOの木工所を歩く45分","見学","9:30","広島県府中市上下町階見1503(工場・ショールーム)"],["1122",46,"撮影スポット満載！日本酒の魅力を深掘りしよう！","物販・展示","10:00-18:00",""],["1123",30,"デジタル加工で実現する次世代設計・製造","物販・展示","",""],["1123",38,"空間×デザイン×家具　：小泉誠デザインのショールームと家具で、暮らしの提案と府中家具の歴史とものづくりを体感","見学","",""],["1123",38,"小泉誠デザインの空間と家具（生活道具）","物販・展示","10:00-18:00","広島県府中市高木町1201-1"]],"G":{"広島県広島市安佐北区安佐町久地2683-25":["伴",6646,34.52207,132.38407],"広島県府中市栗柄町3228-2":["下川辺",2731,34.54285,133.23166],"広島県安芸郡熊野町城之堀3丁目4-1":["矢野",4773,34.34816,132.58371],"広島県福山市西町1-1-1 1F":["福山",506,34.48717,133.35654],"広島県安芸郡熊野町平谷4-4-7":["矢野",3235,34.334,132.55953],"広島県広島市中区堀川町2-17":["胡町",138,34.39225,132.46452],"広島県府中市高木町1201-1":["高木",681,34.5609,133.24624],"広島県東広島市西条本町9-7（賀茂鶴 一号蔵直営店）":["西条",193,34.43049,132.74571],"広島県広島市":null,"広島県福山市":null,"広島県府中市鵜飼町800-85":["鵜飼",1108,34.57682,133.24986],"広島県福山市神辺町川南873-8(地域共創拠点areal wakka)":["神辺",617,34.53194,133.38112],"広島県広島市安芸区阿戸町399":["中野東",4476,34.38342,132.62119],"広島県広島市安佐北区可部南3丁目6番18号":["中島",201,34.50139,132.51488],"広島県府中市土生町1492-1":["府中",1302,34.5628,133.22671],"広島県安芸郡熊野町萩原二丁目7−35":["矢野",5945,34.33562,132.59354],"広島県福山市駅家町向永谷127-1":["戸手",2915,34.52035,133.29801],"広島県福山市新市町上安井368-1":["高木",3749,34.59064,133.27665],"広島県広島市安佐北区安佐町飯室2541-1":["あき亀山",6697,34.55653,132.44047],"広島県広島市安佐北区大林2丁目12-60":["河戸帆待川",4909,34.54948,132.5409],"広島県山県郡北広島町木次307":["井原市",11555,34.63039,132.56198],"広島県三次市上志和地町195-1":["志和地",1222,34.73148,132.79623],"広島県広島市中区河原町3-3":["舟入町",186,34.38996,132.44675],"広島県庄原市高町1512-1（モクスト）":["高",2113,34.88371,133.09262],"広島県府中市府中町74-1":["府中",687,34.57718,133.23268],"広島県福山市神辺町道上2635":["道上",517,34.55603,133.35666],"広島県府中市府川町57-1":["府中",452,34.56765,133.23689],"広島県福山市神辺町下御領1033":["御領",323,34.56285,133.39972],"広島県安芸郡熊野町萩原二丁目7-35":["矢野",5945,34.33562,132.59354],"広島県府中市中須町1400-3":["新市",882,34.55738,133.26054],"広島県広島市安佐北区上深川町448":["上深川",1254,34.48695,132.55979],"広島県庄原市宮内町727（美湯の森）":["備後庄原",2228,34.86469,133.04035],"広島県福山市南本庄2-12-10":["備後本庄",797,34.48638,133.34729],"広島県福山市鞆町後地26-229":["福山",11472,34.38692,133.37699],"広島県福山市鞆町後地26-229（オーザック集合）":["福山",11472,34.38692,133.37699],"広島県福山市御幸町上岩成614-1":["万能倉",812,34.54808,133.34659],"広島県広島市安佐北区可部町南原208":["河戸帆待川",6446,34.57406,132.51526],"広島県府中市出口町505-8":["府中",1921,34.58657,133.22545],"広島県安芸郡熊野町出来庭10-6-23":["矢野",3733,34.33449,132.56656],"広島県福山市鞆町後地26-178（中山熔断）":["福山",11472,34.38692,133.37699],"広島県廿日市市木材港北7-28":["広電廿日市",1044,34.34989,132.3441],"広島県福山市神辺八尋1851-1":["御領",1935,34.56432,133.42344],"広島県福山市神辺町八尋1851-1":["御領",1935,34.56432,133.42344],"広島県福山市北本庄2-8-9":["備後本庄",435,34.49651,133.34783],"広島県府中市元町424-10":["府中",481,34.5751,133.23919],"広島県府中市三郎丸町238":["下川辺",2020,34.54581,133.18579],"広島県府中市河南町114":["下川辺",2039,34.53883,133.19337],"岡山県笠岡市新賀777":["早雲の里荏原",3948,34.56214,133.51772],"岡山県笠岡市緑町3-2":["笠岡",1932,34.49245,133.5194],"岡山県笠岡市小平井682":["笠岡",3631,34.5373,133.50979],"広島県神石郡神石高原町上1333-1":["備後矢野",10453,34.69609,133.23332],"広島県江田島市能美町中町3769-1":["かるが浜",8972,34.21933,132.43615],"広島県福山市神辺町川南2866":["神辺",617,34.53194,133.38112],"広島県府中市高木町1201-1 わかばかぐショールーム2階":["高木",681,34.5609,133.24624],"岡山県笠岡市大島中2553":["里庄",3787,34.47469,133.55988],"広島県府中市上下町階見1503(工場・ショールーム)":["上下",5557,34.69866,133.17825],"広島県府中市上下町階見1384(階見植物園)※工場から徒歩約3分":["上下",5557,34.69866,133.17825],"広島県府中市上下町階見1503":["上下",5557,34.69866,133.17825],"岡山県笠岡市大島中2553(旧大島東小学校)":["里庄",3787,34.47469,133.55988],"岡山県笠岡市大島中2553 シェアアトリエ海の校舎石田製帽教室":["里庄",3787,34.47469,133.55988],"広島県福山市新市町常1450":["鵜飼",4904,34.60199,133.27845]}};
+const C = DATA.C, S = DATA.S; // C: [name, city, industry, addr]  S: [day, ci, title, kind, time, place]
+const WEST = new Set(["広島市","東広島市","廿日市市","江田島市","熊野町","北広島町"]);
+const KINDS = ["見学","ワークショップ","物販・展示","その他"];
+const toMin = s => { const m = s.match(/(\d{1,2}):(\d{2})/); return m ? (+m[1])*60 + (+m[2]) : null; };
+const fmt = m => `${Math.floor(m/60)}:${String(m%60).padStart(2,"0")}`;
+const parse = t => {
+  if (!t) return {s:null,e:null,win:true};
+  const p = t.split("-"); const s = toMin(p[0]); let e = p[1] ? toMin(p[1]) : null;
+  if (e == null) return {s, e:s+60, win:false, open:true};
+  return {s, e, win:(e - s) >= 180};
+};
+S.forEach((x,i) => { x.id = i; x.p = parse(x[4]); });
+const RUNS = {}; S.forEach(x => { const k = x[1] + "|" + x[2] + "|" + x[3]; (RUNS[k] = RUNS[k] || new Set()).add(x[0]); });
+S.forEach(x => { x.once = RUNS[x[1] + "|" + x[2] + "|" + x[3]].size === 1 && C[x[1]][2] !== "主催"; });
+const DAYS = [...new Set(S.map(x => x[0]))].sort();
+const WD = "日月火水木金土";
+const dayInfo = d => { const dt = new Date(2026, +d.slice(0,2)-1, +d.slice(2)); return {m:+d.slice(0,2), dd:+d.slice(2), w:WD[dt.getDay()], we: dt.getDay()===0||dt.getDay()===6}; };
+const dayLabel = d => { const i = dayInfo(d); return `${i.m}/${i.dd}(${i.w})`; };
+const PREF = {"笠岡市":"岡山県"};
+const ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/></svg>';
+const detailLink = ci => sfvUrl(ci) ? `<a class="sfv" href="${sfvUrl(ci)}" target="_blank" rel="noopener" aria-label="${esc(C[ci][0])}の詳細ページを開く">${ICON}詳細ページ</a>` : "";
+const sfvUrl = ci => C[ci][4] ? `https://factory-view.jp/factory/${C[ci][4]}/` : "";
+const addrOf = x => {
+  let a = (x[5] || C[x[1]][3] || "");
+  const FIX = [[/一号蔵直営店/, "広島県東広島市西条本町9-7（賀茂鶴 一号蔵直営店）"], [/^\(モクスト\)/, "広島県庄原市高町1512-1（モクスト）"],
+    [/美湯の森/, "広島県庄原市宮内町727（美湯の森）"], [/^株式会社オーザック:/, "広島県福山市鞆町後地26-229（オーザック集合）"], [/^株式会社中山熔断:/, "広島県福山市鞆町後地26-178（中山熔断）"]];
+  const f = FIX.find(([r]) => r.test(a)); if (f) return f[1];
+  a = a.replace(/〒\d{3}-\d{4}\s*/, "").replace(/\s*株式会社文宏堂\s*/, "").replace(/・有限会社瑞穂/, "").trim();
+  if (a && !/^(広島県|岡山県)/.test(a)) {
+    const m = a.match(/(（[^）]*）|\([^)]*\))?\s*(.*)/); const body = m[2];
+    if (!/^(広島県|岡山県)/.test(body)) { const city = Object.keys(PREF).find(c => body.startsWith(c)); a = (m[1] || "") + (city ? PREF[city] : (/^[^\s]*?(市|町)/.test(body) ? "広島県" : "")) + body; }
+  }
+  return a;
+};
+const fullDate = d => { const i = dayInfo(d); return `2026年${i.m}月${i.dd}日(${i.w})`; };
+const hhmm = m => String(Math.floor(m/60)).padStart(2,"0") + String(m%60).padStart(2,"0");
+
+let state = { day: "1121", sel: [], times: {} }; // times[id] = minutes chosen for flexible slots
+let fCity = new Set(), fKind = "すべて", q = "", exclShop = true, view = "day", week = 0;
+const SHOP = "物販・展示";
+const ymd = d => new Date(2026, +d.slice(0,2)-1, +d.slice(2));
+const code = dt => String(dt.getMonth()+1).padStart(2,"0") + String(dt.getDate()).padStart(2,"0");
+const WEEKS = (() => { const ws = []; const seen = new Set(); DAYS.forEach(d => { const dt = ymd(d); const mon = new Date(dt); mon.setDate(dt.getDate() - ((dt.getDay()+6)%7)); const k = code(mon); if (!seen.has(k)) { seen.add(k); ws.push([...Array(7)].map((_,i) => { const x = new Date(mon); x.setDate(mon.getDate()+i); return code(x); })); } }); return ws; })();
+const kindOk = x => !(exclShop && x[3] === SHOP) && (fKind === "すべて" || x[3] === fKind);
+const G = DATA.G;
+const STA = [["すべて",null],["徒歩10分以内",10],["徒歩15分以内",15],["徒歩20分以内",20]];
+let fSta = "すべて";
+const walkMin = m => Math.max(1, Math.ceil(m * 1.3 / 80));
+const geoOf = x => { const g = G[addrOf(x)]; return g ? { st: g[0], m: g[1], w: walkMin(g[1]) } : null; };
+const staText = g => g ? `${g.st}駅 ${g.m < 1000 ? Math.round(g.m/10)*10 + "m" : (g.m/1000).toFixed(1) + "km"}・徒歩約${g.w}分` : "";
+const staOk = x => { const lim = STA.find(s => s[0] === fSta)[1]; if (lim == null) return true; const g = geoOf(x); return !!g && g.w <= lim; };
+const hav = (a, b) => { const R = 6371000, r = Math.PI/180, dp = (b[0]-a[0])*r, dl = (b[1]-a[1])*r;
+  const h = Math.sin(dp/2)**2 + Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dl/2)**2; return 2*R*Math.asin(Math.sqrt(h)); };
+const ll = x => { const g = G[addrOf(x)]; return g && g[2] ? [g[2], g[3]] : null; };
+function travelMin(a, b) {
+  if (!a || !b) return 0;
+  if (addrOf(a) === addrOf(b)) return 0;
+  const p = ll(a), q = ll(b); if (!p || !q) return 20;
+  return Math.ceil(hav(p, q) / 1000 * 1.4 / 40 * 60) + 10; // 道のり1.4倍・時速40km＋駐車など10分
+}
+function slotWindow(x) {
+  const p = x.p;
+  if (p.win) { const s = p.s ?? 600, e = p.e ?? 1020; return { lo: s, hi: Math.max(s, e - 60), dur: 60, flex: true }; }
+  return { lo: p.s, hi: p.s, dur: p.open ? 60 : Math.min(p.e - p.s, 90), flex: false };
+}
+function autoPlan(day, startMin, endMin, lunch, oncePri) {
+  const cand = S.filter(x => x[0] === day && C[x[1]][2] !== "主催" && cityOk(x) && kindOk(x) && staOk(x) && doneOk(x) && qOk(x));
+  const fit = (x, t, prev) => {
+    const w = slotWindow(x), tr = prev ? travelMin(prev, x) : 0;
+    let st = Math.max(t + tr, w.lo); if (w.flex) st = Math.ceil(st / 5) * 5;
+    if (lunch && st < 780 && st + w.dur > 720) { if (!w.flex) return null; st = Math.max(st, 780); }
+    if (st > w.hi || st + w.dur > endMin) return null;
+    return { st, fin: st + w.dur, tr, flex: w.flex };
+  };
+  // ビームサーチ：各段で「終了が早く移動が短い」途中経路を上位40本残して伸ばす
+  let beam = [{ t: startMin, prev: null, travel: 0, used: new Set(), sel: [], times: {} }], res = null;
+  for (let depth = 0; depth < 12 && beam.length; depth++) {
+    const next = [];
+    beam.forEach(s => cand.forEach(x => {
+      if (s.used.has(x[1])) return; const r = fit(x, s.t, s.prev); if (!r) return;
+      const used = new Set(s.used); used.add(x[1]);
+      const times = { ...s.times }; if (r.flex) times[x.id] = r.st;
+      const val = (s.val || 0) + 1 + (oncePri && x.once ? 1 : 0);
+      next.push({ t: r.fin, prev: x, travel: s.travel + r.tr, used, sel: [...s.sel, x.id], times, val, score: r.fin + (s.travel + r.tr) * 0.5 - (oncePri ? (val - s.sel.length - 1) * 90 : 0) });
+    }));
+    next.sort((p, q) => p.score - q.score);
+    const seen = new Set(); beam = [];
+    for (const s of next) { const k = [...s.used].sort().join(",") + "|" + s.prev[1]; if (seen.has(k)) continue; seen.add(k); beam.push(s); if (beam.length >= 40) break; }
+    beam.forEach(s => { if (!res || s.val > res.val || (s.val === res.val && s.travel < res.travel)) res = { sel: s.sel, times: s.times, travel: s.travel, n: s.sel.length, val: s.val, once: s.sel.filter(id => S[id].once).length }; });
+  }
+  return res;
+}
+const autoOpts = () => ({ s: toMin(document.getElementById("aStart").value) ?? 540, e: toMin(document.getElementById("aEnd").value) ?? 1050, l: document.getElementById("aLunch").checked, o: document.getElementById("aOnce").checked });
+function applyAuto(day) {
+  const o = autoOpts(), r = autoPlan(day, o.s, o.e, o.l, o.o), toast = document.getElementById("toast");
+  if (!r || !r.n) { toast.textContent = "この条件で回れるコマが見つかりませんでした。絞り込みや時間を広げてください"; setTimeout(() => toast.textContent = "", 5000); return; }
+  state = { day, sel: r.sel, times: r.times }; view = "day"; syncHash(); render();
+  toast.textContent = `${r.n}社を回るコースを作りました（1回きりの企画 ${r.once}件・移動 合計約${r.travel}分）`; setTimeout(() => toast.textContent = "", 6000);
+}
+let done = new Set(), doneAt = {}, exclDone = true, dbRef = null;
+const doneOk = x => !(exclDone && done.has(x[1]));
+const LS = "sfv-course-done";
+try { (JSON.parse(localStorage.getItem(LS) || "[]")).forEach(i => done.add(i)); } catch {}
+function saveLocal() { try { localStorage.setItem(LS, JSON.stringify([...done])); } catch {} }
+function doneStatus() {
+  const n = [...done].filter(i => C[i]).length;
+  document.getElementById("doneStatus").textContent = `取材済み ${n}社` + (dbRef ? "（チーム共有。各企業名の横のボタンで切り替え）" : "（この端末にだけ保存。各企業名の横のボタンで切り替え）");
+}
+async function toggleDone(ci) {
+  const on = !done.has(ci); on ? (done.add(ci), doneAt[ci] = new Date().toISOString()) : (done.delete(ci), delete doneAt[ci]); saveLocal(); render();
+  if (dbRef) {
+    try { const ref = dbRef.collection("visited").doc("co" + ci); on ? await ref.set({ name: C[ci][0], at: new Date().toISOString() }) : await ref.delete(); }
+    catch (e) { const tt = document.getElementById("toast"); tt.textContent = "共有メモに保存できませんでした（この端末には保存済み）"; setTimeout(() => tt.textContent = "", 5000); }
+  }
+}
+(async () => {
+  const db = window.claude ? await window.claude.use("db").catch(() => null) : null;
+  if (!db) { doneStatus(); return; }
+  dbRef = db; doneStatus();
+  db.collection("visited").onSnapshot(snap => {
+    const docs = snap.docs.filter(d => d.exists && C[+d.id.slice(2)]);
+    done = new Set(docs.map(d => +d.id.slice(2))); doneAt = {}; docs.forEach(d => { const a = d.data(); if (a && a.at) doneAt[+d.id.slice(2)] = a.at; });
+    saveLocal(); render();
+  }, () => { dbRef = null; doneStatus(); });
+})();
+const qOk = x => { const qq = q.trim(); return !qq || C[x[1]][0].includes(qq) || x[2].includes(qq); };
+
+// ---- hash: c<MMDD>-<id36>[t<HHMM>]-...  (ASCII only, so it survives the artifact link)
+function encode() {
+  if (!state.sel.length) return "d" + state.day;
+  return "c" + state.day + "-" + state.sel.map(id => id.toString(36) + (state.times[id] != null ? "t" + String(Math.floor(state.times[id]/60)).padStart(2,"0") + String(state.times[id]%60).padStart(2,"0") : "")).join("-");
+}
+function decode(h) {
+  const m = h.match(/^([cd])(\d{4})(.*)$/); if (!m || !DAYS.includes(m[2])) return null;
+  const st = { day: m[2], sel: [], times: {} };
+  m[3].split("-").filter(Boolean).forEach(tok => {
+    const [a, t] = tok.split("t"); const id = parseInt(a, 36);
+    if (S[id] && S[id][0] === st.day && !st.sel.includes(id)) {
+      st.sel.push(id);
+      if (t && /^\d{4}$/.test(t)) st.times[id] = (+t.slice(0,2))*60 + (+t.slice(2));
+    }
+  });
+  return st;
+}
+let writingHash = false;
+function syncHash() {
+  const h = encode();
+  if (location.hash.slice(1) !== h) { writingHash = true; location.hash = h; }
+}
+window.addEventListener("hashchange", () => {
+  if (writingHash) { writingHash = false; return; }
+  const st = decode(location.hash.slice(1)); if (st) { state = st; render(); }
+});
+
+const effStart = id => { const x = S[id]; return state.times[id] ?? x.p.s ?? 9*60; };
+const effEnd = id => { const x = S[id]; if (state.times[id] != null || x.p.win) return effStart(id) + 60; return x.p.e != null ? Math.min(x.p.e, effStart(id) + 90) : effStart(id) + 60; };
+const sortedSel = () => [...state.sel].sort((a,b) => effStart(a) - effStart(b));
+
+function renderDays() {
+  const el = document.getElementById("days"); el.innerHTML = "";
+  DAYS.forEach(d => {
+    const i = dayInfo(d), n = new Set(S.filter(x => x[0] === d && !(exclShop && x[3] === SHOP)).map(x => x[1])).size;
+    const b = document.createElement("button");
+    b.className = "day" + (i.we ? " we" : "") + (state.day === d && state.sel.length ? " has" : "");
+    b.setAttribute("aria-pressed", state.day === d);
+    b.innerHTML = `<b>${i.m}/${i.dd}</b><small>${i.w}</small><span class="n">${n}社</span><span class="dot"></span>`;
+    b.onclick = () => goDay(d);
+    el.appendChild(b);
+  });
+  const cur = el.querySelector('[aria-pressed="true"]'); cur && cur.scrollIntoView({block:"nearest", inline:"center"});
+}
+function chips(id, label, opts, cur, set) {
+  const el = document.getElementById(id); el.innerHTML = `<span class="flabel">${label}</span>`;
+  opts.forEach(o => { const b = document.createElement("button"); b.className = "chip"; b.textContent = o;
+    b.setAttribute("aria-pressed", o === cur); b.onclick = () => { set(o); renderMain(); renderFilters(); }; el.appendChild(b); });
+}
+function renderFilters() {
+  const scope = view === "status" ? new Set(DAYS) : view === "week" ? new Set(WEEKS[week]) : new Set([state.day]);
+  const daySlots = S.filter(x => scope.has(x[0]));
+  const cities = [...new Set(daySlots.map(x => C[x[1]][1]))].filter(c => c !== "複数")
+    .sort((a,b) => (WEST.has(b) - WEST.has(a)) || a.localeCompare(b, "ja"));
+  fCity.forEach(c => { if (c !== "西部（安芸）" && c !== "東部（備後）" && !cities.includes(c)) cities.push(c); });
+  const el = document.getElementById("fCity"); el.innerHTML = `<span class="flabel">エリア（複数可）</span>`;
+  ["すべて","西部（安芸）","東部（備後）", ...cities].forEach(o => {
+    const b = document.createElement("button"); b.className = "chip"; b.textContent = o;
+    b.setAttribute("aria-pressed", o === "すべて" ? fCity.size === 0 : fCity.has(o));
+    b.onclick = () => { if (o === "すべて") fCity.clear(); else fCity.has(o) ? fCity.delete(o) : fCity.add(o); renderFilters(); renderMain(); };
+    el.appendChild(b);
+  });
+  if (exclShop && fKind === SHOP) fKind = "すべて";
+  chips("fKind", "種別", ["すべて", ...KINDS.filter(k => !(exclShop && k === SHOP))], fKind, v => fKind = v);
+  chips("fSta", "駅から", STA.map(s => s[0]), fSta, v => fSta = v);
+  const ex = document.createElement("button"); ex.className = "chip ex"; ex.setAttribute("aria-pressed", exclShop);
+  ex.textContent = exclShop ? "製品展示・物販を除外中" : "製品展示・物販を除外";
+  ex.onclick = () => { exclShop = !exclShop; render(); };
+  document.getElementById("fKind").appendChild(ex);
+  const ed = document.createElement("button"); ed.className = "chip ex"; ed.setAttribute("aria-pressed", exclDone);
+  ed.textContent = exclDone ? "取材済みを除外中" : "取材済みを除外";
+  ed.onclick = () => { exclDone = !exclDone; render(); };
+  document.getElementById("fKind").appendChild(ed);
+  doneStatus();
+}
+function cityOk(x) {
+  const c = C[x[1]][1];
+  if (!fCity.size) return true;
+  if (fCity.has(c)) return true;
+  if (fCity.has("西部（安芸）") && WEST.has(c)) return true;
+  if (fCity.has("東部（備後）") && !WEST.has(c) && c !== "複数") return true;
+  return false;
+}
+function renderList() {
+  const el = document.getElementById("list"); el.innerHTML = "";
+  const slots = S.filter(x => x[0] === state.day && cityOk(x) && kindOk(x) && staOk(x) && doneOk(x) && qOk(x));
+  const by = new Map(); slots.forEach(x => { if (!by.has(x[1])) by.set(x[1], []); by.get(x[1]).push(x); });
+  const groups = [...by.entries()].sort((a,b) => (WEST.has(C[b[0]][1]) - WEST.has(C[a[0]][1])) || C[a[0]][1].localeCompare(C[b[0]][1],"ja") || C[a[0]][0].localeCompare(C[b[0]][0],"ja"));
+  if (!groups.length) { el.innerHTML = `<div class="empty">この条件のコマはありません。エリアや種別の絞り込みを外してください。</div>`; return; }
+  groups.forEach(([ci, xs]) => {
+    const co = C[ci], card = document.createElement("article"); card.className = "co" + (done.has(ci) ? " done" : ""); card.id = "co" + ci;
+    const main = xs.find(x => !x[5]) || xs[0], gm = geoOf(main);
+    card.innerHTML = `<h3>${co[0]} <span class="tag city">${co[1]}</span><span class="tag">${co[2]}</span>${gm ? `<span class="tag sta${gm.w <= 15 ? " near" : ""}">最寄り ${staText(gm)}</span>` : ""}${detailLink(ci)}<button class="mark" data-done="${ci}" aria-pressed="${done.has(ci)}">${done.has(ci) ? "✓ 取材済み" : "取材済みにする"}</button></h3><div class="slots"></div>`;
+    card.querySelector("[data-done]").onclick = () => toggleDone(ci);
+    const box = card.querySelector(".slots");
+    xs.sort((a,b) => (a.p.s ?? 9999) - (b.p.s ?? 9999)).forEach(x => {
+      const on = state.sel.includes(x.id), b = document.createElement("button");
+      b.className = "slot"; b.setAttribute("aria-pressed", on);
+      const tm = x.p.win ? (x[4] ? x[4] + "<br>いつでも" : "時間未定") : x[4] + (x.p.open ? "〜" : "");
+      b.innerHTML = `<span class="tm${x.p.win ? " win" : ""}">${tm}</span><span class="k k-${x[3]}">${x[3]}</span><span class="ttl">${esc(x[2])}${x.once ? '<span class="once">1回きり</span>' : ""}${x[5] ? `<span class="pl">会場：${esc(x[5])}${geoOf(x) && geoOf(x).st !== (gm && gm.st) ? `（${staText(geoOf(x))}）` : ""}</span>` : ""}</span><span class="ck">${on ? "✓" : ""}</span>`;
+      b.onclick = () => toggle(x.id);
+      box.appendChild(b);
+    });
+    el.appendChild(card);
+  });
+}
+function toggle(id) {
+  const i = state.sel.indexOf(id);
+  if (i >= 0) { state.sel.splice(i, 1); delete state.times[id]; } else state.sel.push(id);
+  syncHash(); render();
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function renderCourse() {
+  const ids = sortedSel(), n = new Set(ids.map(id => S[id][1])).size;
+  document.querySelector("#cTitle small").textContent = `${dayLabel(state.day)}・${n}社 ${ids.length}コマ`;
+  document.getElementById("emptyHint").hidden = !!ids.length;
+  const tl = document.getElementById("tl"); tl.innerHTML = "";
+  const bar = document.getElementById("bar"); bar.innerHTML = "";
+  const X = m => Math.max(0, Math.min(100, (m - 540) / (720) * 100));
+  let prev = null;
+  ids.forEach((id, k) => {
+    const x = S[id], co = C[x[1]], s = effStart(id), e = effEnd(id);
+    const overlap = prev != null && s < effEnd(prev) && S[prev][1] !== x[1];
+    const i = document.createElement("i"); i.style.left = X(s) + "%"; i.style.width = Math.max(1.2, X(e) - X(s)) + "%";
+    if (overlap) i.className = "ov"; i.title = co[0]; bar.appendChild(i);
+    const li = document.createElement("li"); li.className = "it";
+    let note = "";
+    if (prev != null) {
+      const pc = C[S[prev][1]];
+      if (overlap) note = `<div class="note warn">⚠ 前のコマ（${esc(pc[0])}）と時間が重なっています</div>`;
+      else if (addrOf(S[prev]) !== addrOf(x)) {
+        const gap = s - effEnd(prev), tr = travelMin(S[prev], x);
+        note = `<div class="note${gap < tr ? " warn" : ""}">→ 移動 ${pc[1] !== co[1] ? esc(pc[1]) + "→" + esc(co[1]) : esc(co[1]) + "内"}・車で約${tr}分／空き${gap}分${gap < tr ? "（間に合わない可能性）" : ""}</div>`;
+      }
+    }
+    const flex = x.p.win || x.p.open;
+    const tLabel = state.times[id] != null ? fmt(state.times[id]) : (x.p.s != null ? fmt(x.p.s) : "—");
+    li.innerHTML = `${note}<div class="t">${tLabel}<small>${x.p.win || state.times[id] != null ? "訪問予定" : (x.p.e && !x.p.open ? "〜" + fmt(x.p.e) : "開始")}</small></div>
+      <div><div class="c">${esc(co[0])} <span class="k k-${x[3]}">${x[3]}</span></div><div class="d">${esc(x[2])}${x.once ? '<span class="once">1回きり</span>' : ""}</div>
+      <div class="a">${esc(addrOf(x))}${x.p.win && x[4] ? `・開催 ${x[4]}` : ""}</div>${geoOf(x) ? `<div class="a">最寄り ${staText(geoOf(x))}</div>` : ""}
+      <a class="cal" href="${gcalUrl(id)}" target="_blank" rel="noopener">＋カレンダー</a>${sfvUrl(x[1]) ? `<div>${detailLink(x[1])}</div>` : ""}
+      ${x.p.win ? `<label class="a">訪問時刻 <input type="time" step="900" value="${state.times[id] != null ? fmt(state.times[id]).padStart(5,"0") : ""}" data-id="${id}"></label>` : ""}</div>
+      <button class="rm" aria-label="${esc(co[0])}を外す" data-rm="${id}">×</button>`;
+    tl.appendChild(li); prev = id;
+  });
+  tl.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => toggle(+b.dataset.rm));
+  tl.querySelectorAll("input[type=time]").forEach(inp => inp.onchange = () => {
+    const m = toMin(inp.value); const id = +inp.dataset.id;
+    if (m == null) delete state.times[id]; else state.times[id] = m;
+    syncHash(); render();
+  });
+  const addrs = [...new Set(ids.map(id => addrOf(S[id])).filter(Boolean))];
+  const route = document.getElementById("route");
+  route.href = addrs.length ? "https://www.google.com/maps/dir/" + addrs.map(a => encodeURIComponent(a.replace(/〒\d{3}-\d{4}\s*/, ""))).join("/") : "https://www.google.com/maps";
+  route.style.pointerEvents = addrs.length ? "" : "none"; route.style.opacity = addrs.length ? "" : ".45";
+  ["copyLink","copyText","clear","saveCsv"].forEach(b => document.getElementById(b).disabled = !ids.length);
+  document.getElementById("urlbox").hidden = true;
+}
+const ON_CLAUDE = /claude/.test(location.hostname) || location.protocol === "file:";
+function shareUrl() { return (ON_CLAUDE && ARTIFACT_URL.startsWith("http") ? ARTIFACT_URL : location.href.split("#")[0]) + "#" + encode(); }
+function courseText() {
+  const ids = sortedSel();
+  return [`SFV2026 取材コース ${fullDate(state.day)}`, ...ids.map(id => {
+    const x = S[id], s = effStart(id);
+    const t = state.times[id] != null || x.p.win ? `${fmt(s)}頃` : x[4];
+    return `・${t} ${C[x[1]][0]}【${x[3]}】${x[2]}\n　${addrOf(x)}` + (sfvUrl(x[1]) ? `\n　詳細ページ ${sfvUrl(x[1])}` : "");
+  }), "", shareUrl()].join("\n");
+}
+async function copy(text, msg) {
+  const toast = document.getElementById("toast");
+  try { await navigator.clipboard.writeText(text); toast.textContent = msg; }
+  catch { const u = document.getElementById("urlbox"); u.hidden = false; u.textContent = text;
+    const r = document.createRange(); r.selectNodeContents(u); const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    toast.textContent = "自動コピーできませんでした。下の文字列を選択してコピーしてください。"; }
+  setTimeout(() => { toast.textContent = ""; }, 4000);
+}
+function evInfo(id) {
+  const x = S[id], co = C[x[1]], s = effStart(id), e = effEnd(id);
+  const subject = `【SFV取材】${co[0]}｜${x[3]}`;
+  const desc = [`SFV2026 取材コース ${fullDate(x[0])}`, `企画：${x[2]}`, `種別：${x[3]}`,
+    `開催時間：${x[4] || "時間未定"}${x.p.win ? `（訪問予定 ${fmt(s)}）` : ""}`, `場所：${addrOf(x)}`, ...(geoOf(x) ? [`最寄り：${staText(geoOf(x))}（目安）`] : []), `市町：${co[1]}`, ...(sfvUrl(x[1]) ? [`詳細ページ：${sfvUrl(x[1])}`] : []), `コース：${shareUrl()}`].join("\n");
+  return { x, co, s, e, subject, desc, loc: addrOf(x) };
+}
+function gcalUrl(id) {
+  const v = evInfo(id), d = "2026" + v.x[0];
+  return "https://calendar.google.com/calendar/render?action=TEMPLATE&ctz=Asia%2FTokyo"
+    + "&text=" + encodeURIComponent(v.subject)
+    + "&dates=" + d + "T" + hhmm(v.s) + "00/" + d + "T" + hhmm(v.e) + "00"
+    + "&location=" + encodeURIComponent(v.loc) + "&details=" + encodeURIComponent(v.desc);
+}
+function csvCourse() {
+  const q = s => '"' + String(s).replace(/"/g, '""') + '"';
+  const t12 = m => { const h = Math.floor(m/60), mm = String(m%60).padStart(2,"0"); return `${((h+11)%12)+1}:${mm} ${h < 12 ? "AM" : "PM"}`; };
+  const rows = [["Subject","Start Date","Start Time","End Date","End Time","All Day Event","Description","Location","Private"].join(",")];
+  sortedSel().forEach(id => {
+    const v = evInfo(id), i = dayInfo(v.x[0]), date = `${String(i.m).padStart(2,"0")}/${String(i.dd).padStart(2,"0")}/2026`;
+    rows.push([q(v.subject), date, t12(v.s), date, t12(v.e), "False", q(v.desc), q(v.loc), "False"].join(","));
+  });
+  return rows.join("\r\n") + "\r\n";
+}
+document.getElementById("saveCsv").onclick = async () => {
+  const toast = document.getElementById("toast"), csv = csvCourse();
+  const dl = window.claude ? await window.claude.use("downloads").catch(() => null) : null;
+  if (dl) {
+    try { await dl.save({ filename: `SFV取材コース_2026${state.day}.csv`, data: csv }); toast.textContent = "CSVを保存しました。Googleカレンダーの「インポート」で読み込んでください"; setTimeout(() => toast.textContent = "", 6000); return; }
+    catch (e) { if (e && e.code === "declined") { toast.textContent = "保存をキャンセルしました"; return; } }
+  }
+  if (!ON_CLAUDE) { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], {type: "text/csv"})); a.download = `SFV取材コース_2026${state.day}.csv`; document.body.appendChild(a); a.click(); a.remove(); toast.textContent = "CSVを保存しました。Googleカレンダーの「インポート」で読み込んでください"; setTimeout(() => toast.textContent = "", 6000); return; }
+  copy(csv, "この画面では保存できないため、CSVの中身をコピーしました。テキストエディタに貼って .csv で保存してください");
+};
+document.getElementById("autoBtn").onclick = () => applyAuto(state.day);
+document.getElementById("copyLink").onclick = () => copy(shareUrl(), "共有リンクをコピーしました");
+document.getElementById("copyText").onclick = () => copy(courseText(), "行程テキストをコピーしました");
+document.getElementById("clear").onclick = () => { state.sel = []; state.times = {}; syncHash(); render(); };
+document.getElementById("q").oninput = e => { q = e.target.value; renderMain(); };
+
+function goDay(d, ci) {
+  if (state.day !== d) { state = { day: d, sel: [], times: {} }; syncHash(); }
+  view = "day"; render();
+  if (ci != null) { const el = document.getElementById("co" + ci); el && el.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start"}); }
+}
+function renderWeek() {
+  const el = document.getElementById("week"); const days = WEEKS[week];
+  const vis = S.filter(x => days.includes(x[0]) && cityOk(x) && kindOk(x) && staOk(x) && doneOk(x) && qOk(x));
+  const cnt = {}; const coSet = new Map();
+  vis.forEach(x => { const k = x[1] + "|" + x[0]; (cnt[k] = cnt[k] || []).push(x); coSet.set(x[1], (coSet.get(x[1]) || 0) + 1); });
+  const perDay = days.map(d => ({ d, slots: vis.filter(x => x[0] === d).length, cos: new Set(vis.filter(x => x[0] === d).map(x => x[1])).size }));
+  const maxCos = Math.max(1, ...perDay.map(p => p.cos));
+  const maxCell = Math.max(1, ...Object.values(cnt).map(a => a.length));
+  const first = ymd(days[0]), last = ymd(days[6]);
+  const wbtns = WEEKS.map((w,i) => { const a = ymd(w[0]), b = ymd(w[6]); return `<button class="chip" data-w="${i}" aria-pressed="${i===week}">${a.getMonth()+1}/${a.getDate()}〜${b.getMonth()+1}/${b.getDate()}</button>`; }).join("");
+  const head = days.map(d => { const i = dayInfo(d); const on = DAYS.includes(d);
+    return `<th class="${i.we ? "we" : ""}${on ? "" : " off"}">${on ? `<button data-day="${d}"><b>${i.m}/${i.dd}</b><small>${i.w}</small></button>` : `${i.m}/${i.dd}<br><small>${i.w}</small>`}</th>`; }).join("");
+  const sum = perDay.map(p => `<td><div class="bars"><i style="height:${Math.round(p.cos/maxCos*36)}px"></i>${p.cos}社<br><small>${p.slots}コマ</small></div></td>`).join("");
+  const rows = [...coSet.keys()].sort((a,b) => (WEST.has(C[b][1]) - WEST.has(C[a][1])) || C[a][1].localeCompare(C[b][1],"ja") || C[a][0].localeCompare(C[b][0],"ja"));
+  let area = null, body = "";
+  rows.forEach(ci => {
+    const co = C[ci], ar = co[1] === "複数" ? "主催" : WEST.has(co[1]) ? "西部（安芸）" : "東部（備後）";
+    if (ar !== area) { area = ar; body += `<tr class="area"><td colspan="9">${ar}</td></tr>`; }
+    body += `<tr><td class="co-n">${esc(co[0])}${done.has(ci) ? '<span class="donetag">取材済</span>' : ""}<small>${esc(co[1])}・${esc(co[2])}</small></td>` + days.map(d => {
+      const a = cnt[ci + "|" + d]; if (!a) return "<td></td>";
+      const kinds = [...new Set(a.map(x => x[3]))].map(k => ({"見学":"見","ワークショップ":"WS","物販・展示":"販","その他":"他"}[k])).join("・");
+      const pct = Math.round(18 + a.length / maxCell * 50);
+      return `<td><button class="cell" data-day="${d}" data-ci="${ci}" style="background:color-mix(in srgb,var(--blue) ${pct}%,transparent)" title="${esc(co[0])} ${dayLabel(d)}">${a.length}<small>${kinds}</small></button></td>`;
+    }).join("") + `<td class="tot">${coSet.get(ci)}</td></tr>`;
+  });
+  el.innerHTML = `<div class="wkhead"><div class="filters" style="margin:0">${wbtns}</div><span class="legend">数字＝コマ数（見＝見学／WS＝ワークショップ／販＝物販・展示／他＝その他）。マスか日付を押すとその日の選択画面へ</span></div>
+    <div class="wk"><table><thead><tr><th>${first.getMonth()+1}/${first.getDate()}〜${last.getMonth()+1}/${last.getDate()}の週・${rows.length}社</th>${head}<th>計</th></tr></thead>
+    <tbody><tr class="sum"><td>開催社数</td>${sum}<td>${vis.length}</td></tr>
+    <tr class="auto-row"><td>自動コースで回れる社数</td>${days.map(d => { if (!DAYS.includes(d)) return "<td></td>"; const o = autoOpts(), r = autoPlan(d, o.s, o.e, o.l, o.o); return `<td>${r && r.n ? `<button data-auto="${d}">${r.n}社</button>` : "—"}</td>`; }).join("")}<td></td></tr>${body || `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">この条件のコマはありません</td></tr>`}</tbody></table></div>`;
+  el.querySelectorAll("[data-w]").forEach(b => b.onclick = () => { week = +b.dataset.w; renderFilters(); renderWeek(); });
+  el.querySelectorAll("[data-auto]").forEach(b => b.onclick = () => applyAuto(b.dataset.auto));
+  el.querySelectorAll("[data-day]").forEach(b => b.onclick = () => goDay(b.dataset.day, b.dataset.ci != null ? +b.dataset.ci : null));
+}
+function renderStatus() {
+  const el = document.getElementById("status");
+  const cos = C.map((c, i) => i).filter(i => C[i][2] !== "主催").filter(i => S.some(x => x[1] === i && cityOk(x) && staOk(x) && qOk(x)));
+  const info = i => { const xs = S.filter(x => x[1] === i && !(exclShop && x[3] === SHOP)); const days = [...new Set(xs.map(x => x[0]))].sort();
+    const once = [...new Set(xs.filter(x => x.once).map(x => x[0] + x[2]))].length; return { days, once }; };
+  const doneN = cos.filter(i => done.has(i)).length;
+  const rows = g => cos.filter(g).sort((a, b) => (WEST.has(C[b][1]) - WEST.has(C[a][1])) || C[a][1].localeCompare(C[b][1], "ja") || C[a][0].localeCompare(C[b][0], "ja")).map(i => {
+    const f = info(i), at = doneAt[i] ? new Date(doneAt[i]) : null;
+    const span = f.days.length ? `${+f.days[0].slice(0,2)}/${+f.days[0].slice(2)}〜${+f.days.at(-1).slice(0,2)}/${+f.days.at(-1).slice(2)}` : "—";
+    return `<tr class="${done.has(i) ? "is-done" : ""}"><td><b>${esc(C[i][0])}</b></td><td>${esc(C[i][1])}</td><td>${esc(C[i][2])}</td>
+      <td class="num">${f.days.length}日</td><td>${span}</td><td class="num">${f.once ? `<span class="once">${f.once}件</span>` : "—"}</td>
+      <td>${done.has(i) ? `取材済み${at ? `<br><small>${at.getMonth()+1}/${at.getDate()} 記録</small>` : ""}` : "未取材"}</td>
+      <td><button class="mark" data-st="${i}" aria-pressed="${done.has(i)}">${done.has(i) ? "✓ 取材済み" : "取材済みにする"}</button></td></tr>`; }).join("");
+  el.innerHTML = `<div class="stsum"><span><b>${cos.length - doneN}</b>社 未取材</span><span><b>${doneN}</b>社 取材済み</span><span style="color:var(--muted)">「1回きり」は会期中に1日しか開催されない企画の件数${exclShop ? "（物販・展示を除く）" : ""}</span></div>
+    <div class="st"><table><thead><tr><th>企業</th><th>市町</th><th>業種</th><th>開催日数</th><th>開催期間</th><th>1回きり</th><th>状況</th><th></th></tr></thead><tbody>
+    <tr class="grp"><td colspan="8">未取材</td></tr>${rows(i => !done.has(i)) || '<tr><td colspan="8">すべて取材済みです</td></tr>'}
+    <tr class="grp"><td colspan="8">取材済み</td></tr>${rows(i => done.has(i)) || '<tr><td colspan="8" style="color:var(--muted)">まだありません。企業名の横のボタンか、この表の右端のボタンで記録できます</td></tr>'}
+    </tbody></table></div>`;
+  el.querySelectorAll("[data-st]").forEach(b => b.onclick = () => toggleDone(+b.dataset.st));
+}
+function renderMain() {
+  const wk = view === "week", st = view === "status";
+  document.getElementById("list").hidden = wk || st; document.getElementById("week").hidden = !wk; document.getElementById("status").hidden = !st; document.getElementById("days").hidden = wk || st;
+  document.getElementById("tabDay").setAttribute("aria-pressed", view === "day"); document.getElementById("tabWeek").setAttribute("aria-pressed", wk); 
+  document.getElementById("viewHint").textContent = st ? "全企業の取材状況。エリア・駅から・検索で絞り込めます" : wk ? "週全体でイベントの多い日・少ない日を確認できます" : "日付を選んでコマを選択";
+  st ? renderStatus() : wk ? renderWeek() : renderList();
+}
+document.getElementById("tabDay").onclick = () => { view = "day"; render(); };
+document.getElementById("tabWeek").onclick = () => { view = "week"; week = Math.max(0, WEEKS.findIndex(w => w.includes(state.day))); render(); };
+function render() { renderDays(); renderFilters(); renderMain(); renderCourse(); }
+document.getElementById("totalCo").textContent = C.filter(c => c[2] !== "主催").length;
+const init = decode(location.hash.slice(1));
+if (init) { state = init; document.getElementById("sharedNote").hidden = !init.sel.length; }
+render();
+</script>
+
+</body>
+</html>
