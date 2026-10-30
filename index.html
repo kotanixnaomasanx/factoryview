@@ -284,7 +284,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
           <label><input type="checkbox" id="aOnce" checked> 1回きりの企画を優先</label>
         </div>
         <button class="btn" id="autoBtn">この日のコースを自動で組む</button>
-        <p class="hint">今の絞り込み（エリア・種別・駅から・検索）の範囲で、移動手段（車／公共交通・徒歩）に合わせた移動時間を見込みながら、できるだけ多くの企業を回れる順番に組みます。「1回きりの企画を優先」にすると、会期中その日しかない企画を1件で約2社分の重みで選びます。この日に選んだコマだけが置き換わり、ほかの日はそのまま残ります。</p>
+        <p class="hint">今の絞り込み（エリア・種別・駅から・検索）の範囲で、移動手段（車／公共交通・徒歩）に合わせた移動時間を見込みながら、できるだけ多くの企業を回れる順番に組みます。「1回きりの企画を優先」にすると、会期中その日しかない企画を1件で約2社分の重みで選びます。この日に選んだコマだけが置き換わり、ほかの日はそのまま残ります。自動で組んだ日は、移動手段（車／公共交通・徒歩）を切り替えると、その移動手段で組み直されます（コマを手で追加・削除・時刻変更した日はそのまま残ります）。</p>
       </div>
       <div class="shared" id="sharedNote" hidden>共有されたコースを表示しています。コマの追加・削除をするとリンクも更新されます。</div>
       <div class="cart" id="cart">
@@ -466,12 +466,27 @@ function autoPlan(day, startMin, endMin, lunch, oncePri) {
   return res;
 }
 const autoOpts = () => ({ s: toMin(document.getElementById("aStart").value) ?? 540, e: toMin(document.getElementById("aEnd").value) ?? 1050, l: document.getElementById("aLunch").checked, o: document.getElementById("aOnce").checked });
+// 自動で組んだ日（手で変更すると外れる）。移動手段を切り替えるとこの日だけ組み直す
+let autoDays = new Set();
+function replaceDay(day, r) {
+  const keep = state.sel.filter(id => S[id][0] !== day), times = {};
+  keep.forEach(id => { if (state.times[id] != null) times[id] = state.times[id]; });
+  state = { day: state.day, sel: [...keep, ...r.sel], times: { ...times, ...r.times } }; autoDays.add(day);
+}
+const showToast = (msg, ms = 6000) => { const el = document.getElementById("toast"); el.textContent = msg; clearTimeout(showToast.t); showToast.t = setTimeout(() => el.textContent = "", ms); };
+function setMode(m) {
+  if (m === mode) return; mode = m;
+  const days = [...autoDays].filter(d => state.sel.some(id => S[id][0] === d)).sort(), o = autoOpts(), ng = [];
+  days.forEach(d => { const r = autoPlan(d, o.s, o.e, o.l, o.o); if (r && r.n) replaceDay(d, r); else ng.push(d); });
+  syncHash(); render();
+  const done = days.filter(d => !ng.includes(d));
+  if (done.length) showToast(`移動手段（${MODES.find(x => x[0] === m)[1]}）に合わせて、自動で組んだ${done.map(dayLabel).join("・")}のコースを組み直しました` + (ng.length ? `（${ng.map(dayLabel).join("・")}は条件に合うコマがなく、そのままです）` : ""), 8000);
+  else if (ng.length) showToast(`${ng.map(dayLabel).join("・")}は新しい条件で回れるコマが見つからず、コースはそのままです`, 8000);
+}
 function applyAuto(day) {
   const o = autoOpts(), r = autoPlan(day, o.s, o.e, o.l, o.o), toast = document.getElementById("toast");
   if (!r || !r.n) { toast.textContent = "この条件で回れるコマが見つかりませんでした。絞り込みや時間を広げてください"; setTimeout(() => toast.textContent = "", 5000); return; }
-  const keep = state.sel.filter(id => S[id][0] !== day), times = {};
-  keep.forEach(id => { if (state.times[id] != null) times[id] = state.times[id]; });
-  state = { day, sel: [...keep, ...r.sel], times: { ...times, ...r.times } }; view = "day"; syncHash(); render();
+  replaceDay(day, r); state.day = day; view = "day"; syncHash(); render();
   toast.textContent = `${r.n}社を回るコースを作りました（1回きりの企画 ${r.once}件・移動 合計約${r.travel}分）`; setTimeout(() => toast.textContent = "", 6000);
 }
 let done = new Set(), doneAt = {}, exclDone = false, dbRef = null;
@@ -484,12 +499,14 @@ const qOk = x => { const qq = q.trim(); return !qq || C[x[1]][0].includes(qq) ||
 function encode() {
   const pm = mode === "transit" ? "p" : "";
   if (!state.sel.length) return "d" + state.day + pm;
-  return (previewMode ? "v" : "c") + state.day + pm + "-" + state.sel.map(id => id.toString(36) + (state.times[id] != null ? "t" + String(Math.floor(state.times[id]/60)).padStart(2,"0") + String(state.times[id]%60).padStart(2,"0") : "")).join("-");
+  return (previewMode ? "v" : "c") + state.day + pm + "-" + state.sel.map(id => id.toString(36) + (state.times[id] != null ? "t" + String(Math.floor(state.times[id]/60)).padStart(2,"0") + String(state.times[id]%60).padStart(2,"0") : "")).join("-")
+    + (ad => ad.length ? "-_a" + ad.join(".") : "")([...autoDays].filter(d => state.sel.some(id => S[id][0] === d)).sort());
 }
 function decode(h) {
   const m = h.match(/^([cdv])(\d{4})(p?)(.*)$/); if (!m || !DAYS.includes(m[2])) return null;
-  const st = { day: m[2], sel: [], times: {} }; mode = m[3] ? "transit" : "car";
-  m[4].split("-").filter(Boolean).forEach(tok => {
+  const st = { day: m[2], sel: [], times: {} }; mode = m[3] ? "transit" : "car"; autoDays = new Set();
+  const ta = m[4].match(/-_a([\d.]+)/); if (ta) ta[1].split(".").filter(d => DAYS.includes(d)).forEach(d => autoDays.add(d));
+  m[4].replace(/-_a[\d.]+/, "").split("-").filter(Boolean).forEach(tok => {
     const [a, t] = tok.split("t"); const id = parseInt(a, 36);
     if (S[id] && !st.sel.includes(id)) {
       st.sel.push(id);
@@ -550,10 +567,10 @@ function renderFilters() {
   });
   if (exclShop && fKind === SHOP) fKind = "すべて";
   chips("fKind", "種別", ["すべて", ...KINDS.filter(k => !(exclShop && k === SHOP))], fKind, v => fKind = v);
-  chips("fSta", "駅から", STA.map(s => s[0]), fSta, v => { fSta = v; mode = STA.find(s => s[0] === v)[1] != null ? "transit" : "car"; syncHash(); renderCourse(); });
+  chips("fSta", "駅から", STA.map(s => s[0]), fSta, v => { fSta = v; setMode(STA.find(s => s[0] === v)[1] != null ? "transit" : "car"); });
   const fm = document.getElementById("fMode"); fm.innerHTML = `<span class="flabel">移動手段</span>`;
   MODES.forEach(([k, lab]) => { const b = document.createElement("button"); b.className = "chip"; b.textContent = lab; b.setAttribute("aria-pressed", mode === k);
-    b.onclick = () => { mode = k; syncHash(); render(); }; fm.appendChild(b); });
+    b.onclick = () => setMode(k); fm.appendChild(b); });
   document.getElementById("modeHint").hidden = mode !== "transit";
   const ex = document.createElement("button"); ex.className = "chip ex"; ex.setAttribute("aria-pressed", exclShop);
   ex.textContent = exclShop ? "製品展示・物販を除外中" : "製品展示・物販を除外";
@@ -593,7 +610,7 @@ function renderList() {
 function toggle(id) {
   const i = state.sel.indexOf(id);
   if (i >= 0) { state.sel.splice(i, 1); delete state.times[id]; } else state.sel.push(id);
-  syncHash(); render();
+  autoDays.delete(S[id][0]); syncHash(); render();
 }
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
@@ -640,7 +657,7 @@ function renderCourse() {
   tl.querySelectorAll("input[type=time]").forEach(inp => inp.onchange = () => {
     const m = toMin(inp.value); const id = +inp.dataset.id;
     if (m == null) delete state.times[id]; else state.times[id] = m;
-    syncHash(); render();
+    autoDays.delete(S[id][0]); syncHash(); render();
   });
   const addrs = ids.map(id => addrOf(S[id])).filter((a, i, arr) => a && a !== arr[i - 1]);
   const route = document.getElementById("route");
@@ -719,8 +736,8 @@ document.getElementById("copyView").onclick = () => {
   copy(url, "閲覧用リンクをコピーしました。この画面がそのまま相手に表示されます");
 };
 document.getElementById("copyText").onclick = () => copy(courseText(), "行程テキストをコピーしました");
-document.getElementById("clear").onclick = () => { state.sel = []; state.times = {}; syncHash(); render(); };
-document.getElementById("clearDay").onclick = () => { state.sel.filter(id => S[id][0] === state.day).forEach(id => delete state.times[id]); state.sel = state.sel.filter(id => S[id][0] !== state.day); syncHash(); render(); };
+document.getElementById("clear").onclick = () => { state.sel = []; state.times = {}; autoDays.clear(); syncHash(); render(); };
+document.getElementById("clearDay").onclick = () => { autoDays.delete(state.day); state.sel.filter(id => S[id][0] === state.day).forEach(id => delete state.times[id]); state.sel = state.sel.filter(id => S[id][0] !== state.day); syncHash(); render(); };
 document.getElementById("q").oninput = e => { q = e.target.value; renderMain(); };
 
 function goDay(d, ci) {
