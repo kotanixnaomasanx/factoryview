@@ -385,7 +385,10 @@ const addrOf = x => {
 const fullDate = d => { const i = dayInfo(d); return `2026年${i.m}月${i.dd}日(${i.w})`; };
 const hhmm = m => String(Math.floor(m/60)).padStart(2,"0") + String(m%60).padStart(2,"0");
 
-let state = { day: "1121", sel: [], times: {} }; // times[id] = minutes chosen for flexible slots
+// 最初に表示する日：閲覧した日（会期前は初日11/4、会期後は最終日。イベントのない日は次の開催日）
+const firstDay = (() => { const n = new Date(), today = n.getFullYear() * 10000 + (n.getMonth() + 1) * 100 + n.getDate();
+  return DAYS.find(d => 20260000 + +d >= today) || DAYS[DAYS.length - 1]; })();
+let state = { day: firstDay, sel: [], times: {} }; // times[id] = minutes chosen for flexible slots
 let fCity = new Set(), fKind = "すべて", q = "", exclShop = true, view = "day", week = 0;
 const SHOP = "物販・展示";
 const ymd = d => new Date(2026, +d.slice(0,2)-1, +d.slice(2));
