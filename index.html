@@ -7,7 +7,7 @@
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px;font-family:system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
-<title>SFV2026 取材コース</title>
+<title>SFV2026 コースセレクター</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@500;600&display=swap">
@@ -48,6 +48,11 @@ h1 span{color:var(--blue)}
 .day[aria-pressed="true"] small,.day[aria-pressed="true"] .n,.day[aria-pressed="true"].we b{color:#fff}
 .day .dot{width:6px;height:6px;border-radius:50%;background:var(--salmon);margin-top:2px;visibility:hidden}
 .day.has .dot{visibility:visible}
+.notice{display:flex;gap:10px;align-items:flex-start;border:2px solid var(--warn);background:var(--warn-soft);border-radius:12px;padding:12px 14px;color:var(--ink)}
+.notice svg{width:22px;height:22px;flex:none;color:var(--warn);margin-top:1px}
+.notice strong{display:block;font-size:15px;font-weight:900;color:var(--warn);margin-bottom:2px}
+.notice p{margin:0;font-size:13.5px;line-height:1.6}
+.notice b{font-weight:900;text-decoration:underline;text-decoration-color:var(--warn);text-underline-offset:3px}
 .tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
 .tab{font:inherit;font-weight:700;font-size:13px;border:0;background:none;color:var(--muted);border-radius:7px;padding:6px 14px;cursor:pointer}
 .tab[aria-pressed="true"]{background:var(--blue);color:#fff}
@@ -172,10 +177,15 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 <div class="wrap">
   <header>
     <div>
-      <h1><span>SFV2026</span> 取材コース</h1>
+      <h1><span>SFV2026</span> コースセレクター</h1>
       <p class="sub">日付を選び、回る企業のコマを選択 → リンクで共有。11/4〜11/23・<span id="totalCo"></span>社</p>
     </div>
   </header>
+  <div class="notice" role="note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+    <div><strong>訪問前に必ずご確認ください</strong>
+    <p><b>交通の所要時間</b>・<b>空き状況</b>・<b>各社の情報（日時・場所）</b>は目安・登録時点の情報です。変更になる場合がありますので、訪問前に必ず各社の詳細ページ等でご確認ください。</p></div>
+  </div>
   <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
     <div class="tabs" role="group" aria-label="表示">
       <button class="tab" id="tabDay">日別で選ぶ</button>
