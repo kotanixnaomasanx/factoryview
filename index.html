@@ -221,6 +221,10 @@ aside h2 small{font-size:12px;color:var(--muted);font-weight:500}
 .pvi .lk{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:center}
 .pvmove{font-size:11.5px;color:var(--muted);padding:8px 16px 0 100px;border-top:1px dashed var(--line)}
 .pvmove+.pvi{border-top:0;padding-top:6px}
+.back{display:inline-flex;align-items:center;gap:6px}
+.back svg{width:16px;height:16px;flex:none}
+.pvfoot .back{margin-left:auto}
+@media (max-width:600px){.pvfoot .back,.pvhead .back{width:100%;justify-content:center;margin-left:0}}
 .pvfoot{display:flex;flex-wrap:wrap;gap:8px}
 .pvfoot .btn{flex:1 1 200px}
 @media (max-width:520px){.pvi{grid-template-columns:56px minmax(0,1fr)}.pvmove{padding-left:84px}}
@@ -792,12 +796,13 @@ function renderLegend() { const el = document.getElementById("rvLegend");
   el.querySelectorAll("[data-rv]").forEach(b => b.onclick = () => { const v = b.dataset.rv; fRsv.has(v) ? fRsv.delete(v) : fRsv.add(v); if (!fRsv.size) fRsv.add(v); render(); });
 }
 let previewMode = false, ownerPreview = false;
+const BACK_BTN = `<button class="btn back" data-back title="このコースを読み込んだ状態でコースセレクターを開きます"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>コースセレクターに戻る</button>`;
 function renderPreview() {
   const el = document.getElementById("preview"), ds = selDays();
   const n = new Set(state.sel.map(id => S[id][1])).size;
   el.innerHTML = (ownerPreview ? `<div class="pvbar"><strong>閲覧用リンクのプレビュー：相手にはこの画面が表示されます</strong>
       <div class="urlrow"><code id="pvUrl">${esc(viewUrl())}</code><button class="btn" id="pvCopy">リンクをコピー</button><button class="btn ghost" id="pvBack">編集画面に戻る</button></div>
-      <div class="toast" id="pvToast" aria-live="polite"></div></div>` : "") + `<div class="pvhead"><div><h2>SFV2026 コース</h2><p>${ds.length}日・${n}社・${state.sel.length}コマ</p></div></div>` +
+      <div class="toast" id="pvToast" aria-live="polite"></div></div>` : "") + `<div class="pvhead"><div><h2>SFV2026 コース</h2><p>${ds.length}日・${n}社・${state.sel.length}コマ</p></div>${BACK_BTN}</div>` +
     (ds.length ? ds.map(d => {
       const ids = dayIds(d), addrs = ids.map(id => addrOf(S[id])).filter((a, i, arr) => a && a !== arr[i - 1]);
       const route = routeUrl(addrs);
@@ -816,14 +821,14 @@ function renderPreview() {
             <div class="lk">${detailLink(x[1])}<a class="cal" href="${gcalUrl(id)}" target="_blank" rel="noopener">＋カレンダーに追加</a></div></div></div>`;
         }).join("") + `</article>`;
     }).join("") : `<div class="empty">このリンクにはコマが含まれていません。</div>`) +
-    `<div class="pvfoot"><button class="btn" id="pvCsv">カレンダー用データ（CSV）を保存</button><button class="btn ghost" id="pvText">行程テキストをコピー</button><button class="btn ghost" id="pvEdit">このコースを編集する</button></div>
+    `<div class="pvfoot"><button class="btn" id="pvCsv">カレンダー用データ（CSV）を保存</button><button class="btn ghost" id="pvText">行程テキストをコピー</button>${BACK_BTN}</div>
      ${ownerPreview ? "" : '<div class="toast" id="pvToast" aria-live="polite"></div>'}`;
   el.querySelector("#pvCsv").onclick = () => document.getElementById("saveCsv").click();
   el.querySelector("#pvText").onclick = () => copy(courseText(), "行程テキストをコピーしました");
-  el.querySelector("#pvEdit").onclick = () => { previewMode = false; ownerPreview = false; syncHash(); render(); window.scrollTo(0, 0); };
+  el.querySelectorAll("[data-back]").forEach(b => b.onclick = () => { previewMode = false; ownerPreview = false; syncHash(); render(); window.scrollTo(0, 0); });
   if (ownerPreview) {
     el.querySelector("#pvCopy").onclick = () => copy(viewUrl(), "閲覧用リンクをコピーしました");
-    el.querySelector("#pvBack").onclick = () => el.querySelector("#pvEdit").click();
+    el.querySelector("#pvBack").onclick = () => el.querySelector("[data-back]").click();
   }
 }
 function render() {
