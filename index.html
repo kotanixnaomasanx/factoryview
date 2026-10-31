@@ -49,14 +49,23 @@ h1 span{color:var(--blue)}
 .day .dot{width:6px;height:6px;border-radius:50%;background:var(--salmon);margin-top:2px;visibility:hidden}
 .day.has .dot{visibility:visible}
 .day .dot{display:none}
-.notice{--alert:#c62828;border:3px solid var(--alert);background:#fff5f4;border-radius:14px;overflow:hidden;color:var(--ink);box-shadow:0 4px 0 rgba(198,40,40,.18)}
-.notice .nh{display:flex;align-items:center;gap:10px;background:var(--alert);color:#fff;padding:10px 16px;font-size:clamp(17px,2.6vw,21px);font-weight:900;letter-spacing:.04em}
-.notice .nh svg{width:26px;height:26px;flex:none}
-.notice .nb{padding:12px 16px 14px}
-.notice ul{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
-.notice li{background:#fff;border:2px solid var(--alert);color:var(--alert);border-radius:999px;padding:3px 12px;font-weight:900;font-size:14px}
-.notice p{margin:0;font-size:14px;line-height:1.65}
-.notice p b{color:var(--alert);font-weight:900}
+.notice{display:flex;gap:10px;align-items:flex-start;border:2px solid var(--warn);background:var(--warn-soft);border-radius:12px;padding:12px 14px;color:var(--ink)}
+.notice svg{width:22px;height:22px;flex:none;color:var(--warn);margin-top:1px}
+.notice strong{display:block;font-size:15px;font-weight:900;color:var(--warn);margin-bottom:2px}
+.notice p{margin:0;font-size:13.5px;line-height:1.6}
+.notice b{font-weight:900;text-decoration:underline;text-decoration-color:var(--warn);text-underline-offset:3px}
+dialog.nmodal{border:0;border-radius:16px;padding:0;max-width:min(520px,calc(100vw - 32px));width:100%;color:var(--ink);background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+dialog.nmodal::backdrop{background:rgba(20,24,32,.55)}
+.nmodal .mh{display:flex;align-items:center;gap:10px;padding:20px 22px 6px;color:#b3261e;font-size:clamp(17px,5vw,21px);font-weight:900;white-space:nowrap}
+.nmodal .mh svg{width:30px;height:30px;flex:none}
+.nmodal .mb{padding:6px 22px 4px;font-size:15px;line-height:1.75;color:var(--ink)}
+.nmodal ul{margin:10px 0 12px;padding:0;list-style:none;display:grid;gap:8px}
+.nmodal li{background:#fff4e5;border-left:5px solid #e65100;border-radius:8px;padding:9px 12px;font-weight:900;font-size:15.5px;color:#3b2a00}
+.nmodal li small{display:block;font-weight:500;font-size:13px;color:#5b4a2a;margin-top:2px}
+.nmodal p{margin:0 0 6px}
+.nmodal strong{font-weight:900;text-decoration:underline;text-decoration-color:#e65100;text-decoration-thickness:2px;text-underline-offset:3px}
+.nmodal .mf{padding:14px 22px 20px}
+.nmodal .mf button{width:100%;font:inherit;font-size:16px;font-weight:900;color:#fff;background:var(--blue);border:0;border-radius:10px;padding:13px;cursor:pointer}
 .quick{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font:inherit;font-weight:900;font-size:14px;color:#fff;background:var(--salmon);border:0;border-radius:10px;padding:9px 16px;cursor:pointer;box-shadow:0 2px 0 color-mix(in srgb,var(--salmon) 60%,#000 20%)}
 .quick:hover{filter:brightness(1.05)}
 .quick svg{width:18px;height:18px;flex:none}
@@ -248,10 +257,23 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     </div>
   </header>
   <div class="notice" role="note">
-    <div class="nh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>訪問前に必ずご確認ください</div>
-    <div class="nb"><ul><li>交通の所要時間</li><li>空き状況・予約</li><li>各社の情報（日時・場所）</li></ul>
-    <p>このページの内容は<b>目安・登録時点の情報</b>です。変更になる場合がありますので、<b>訪問前に必ず各社の詳細ページ等でご確認ください。</b></p></div>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+    <div><strong>訪問前に必ずご確認ください</strong>
+    <p><b>交通の所要時間</b>・<b>空き状況</b>・<b>各社の情報（日時・場所）</b>は目安・登録時点の情報です。変更になる場合がありますので、訪問前に必ず各社の詳細ページ等でご確認ください。</p></div>
   </div>
+  <dialog class="nmodal" id="noticeModal" aria-labelledby="nmTitle">
+    <div class="mh" id="nmTitle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>訪問前に必ずご確認ください</div>
+    <div class="mb">
+      <p>このページに載っている次の情報は、<strong>目安・登録時点のもの</strong>です。</p>
+      <ul>
+        <li>交通の所要時間<small>距離から計算した概算です。道路状況や電車・バスの本数は反映していません。</small></li>
+        <li>空き状況・予約<small>定員や予約の受付状況は変わります。</small></li>
+        <li>各社の情報（日時・場所）<small>内容や時間が変更になる場合があります。</small></li>
+      </ul>
+      <p><strong>訪問前に必ず各社の詳細ページ等でご確認ください。</strong></p>
+    </div>
+    <div class="mf"><button type="button" id="nmOk" autofocus>確認しました</button></div>
+  </dialog>
   <div id="tabsRow" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
     <div class="tabs" role="group" aria-label="表示">
       <button class="tab" id="tabDay">日別で選ぶ</button>
@@ -864,6 +886,8 @@ document.getElementById("totalCo").textContent = C.filter(c => c[2] !== "主催"
 const init = decode(location.hash.slice(1));
 if (init) { previewMode = !!init.view && init.sel.length > 0; delete init.view; state = init; document.getElementById("sharedNote").hidden = !init.sel.length; }
 render();
+(() => { const d = document.getElementById("noticeModal"); document.getElementById("nmOk").onclick = () => d.close();
+  try { d.showModal(); } catch (e) {} })();
 </script>
 
 </body></html>
