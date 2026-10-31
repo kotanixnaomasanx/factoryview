@@ -238,6 +238,22 @@ aside h2 small{font-size:12px;color:var(--muted);font-weight:500}
 .back svg{width:16px;height:16px;flex:none}
 .pvfoot .back{margin-left:auto}
 @media (max-width:600px){.pvfoot .back,.pvhead .back{width:100%;justify-content:center;margin-left:0}}
+.legs{margin:8px 0;border:2px solid var(--blue);border-radius:10px;background:var(--blue-soft)}
+.legs summary{cursor:pointer;font-weight:900;color:var(--blue);padding:10px 12px;list-style:none;display:flex;align-items:center;gap:6px}
+.legs summary::-webkit-details-marker{display:none}
+.legs summary::before{content:"▶";font-size:10px;transition:transform .15s}
+.legs[open] summary::before{transform:rotate(90deg)}
+.legs ol{list-style:none;margin:0;padding:0 10px 4px;display:grid;gap:8px}
+.legs li{background:var(--card,#fff);border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:grid;grid-template-columns:24px 1fr;gap:2px 8px;font-size:13px}
+.legs li>b{grid-row:span 3;width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;font-size:12px}
+.legs li>span{font-weight:700}
+.legs li>span small{margin-left:6px;color:var(--muted);font-weight:500}
+.legs .li{color:var(--muted)}
+.legs .lb{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.legs .lb a{font-size:12.5px;font-weight:700;border:1px solid var(--blue);color:var(--blue);border-radius:8px;padding:5px 9px;text-decoration:none;background:var(--card,#fff)}
+.legs .lb a.y{background:var(--blue);color:#fff}
+.legs .hint{margin:0;padding:0 12px 10px;font-size:11.5px}
+.pvday .legs{margin:10px 16px}
 .pvfoot{display:flex;flex-wrap:wrap;gap:8px}
 .pvfoot .btn{flex:1 1 200px}
 @media (max-width:520px){.pvi{grid-template-columns:56px minmax(0,1fr)}.pvmove{padding-left:84px}}
@@ -332,6 +348,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
           <button class="btn ghost" id="copyText">行程テキストをコピー（全日程）</button>
           <a class="btn ghost" id="route" href="#" target="_blank" rel="noopener">現在地から この日の経路を地図で</a>
         </div>
+        <div id="legsBox"></div>
         <div class="calbox">
           <h3>Googleカレンダーへ</h3>
           <button class="btn" id="saveCsv">カレンダー用データ（CSV・全日程）を保存</button>
@@ -444,15 +461,41 @@ function transitLeg(a, b) {
   if (!p || !q) return { min: 40, text: "公共交通で約40分（位置不明のため仮）" };
   const wd = walkMin(hav(p, q));
   const sa = ga && ST[ga[0]], sb = gb && ST[gb[0]];
-  const walk = { min: wd, walk: true, text: `徒歩約${wd}分${wd > 30 ? "（タクシー等も検討）" : ""}` };
+  const walk = { min: wd, walk: true, w2: 0, text: `徒歩約${wd}分${wd > 30 ? "（タクシー等も検討）" : ""}` };
   if (!sa || !sb || ga[0] === gb[0]) return walk;
   const share = sa[2].some(l => sb[2].map(lineKey).includes(lineKey(l)));
   const w1 = walkMin(ga[1]), w2 = walkMin(gb[1]), train = Math.max(3, Math.ceil(hav(sa, sb) / 1000 * 1.2 / 40 * 60));
   const tm = w1 + 15 + train + (share ? 0 : 15) + w2;
   if (wd <= tm) return walk;
-  return { min: tm, text: `電車・徒歩で約${tm}分（${ga[0]}駅→${gb[0]}駅${share ? "" : "・乗換あり"}）` };
+  return { min: tm, walk: false, from: ga[0], to: gb[0], w2, text: `電車・徒歩で約${tm}分（${ga[0]}駅→${gb[0]}駅${share ? "" : "・乗換あり"}）` };
 }
 const transitUrl = (a, b, w) => "https://www.google.com/maps/dir/?api=1&travelmode=" + (w ? "walking" : "transit") + "&origin=" + encodeURIComponent(mapAddr(addrOf(a))) + "&destination=" + encodeURIComponent(mapAddr(addrOf(b)));
+// Yahoo!乗換案内用の駅名（同名駅がある駅は県名付き）
+const YN = n => ["府中", "御領", "西条", "高木", "鵜飼"].includes(n) ? n + "(広島県)" : n;
+const yahooUrl = (from, to, day, arr) => `https://transit.yahoo.co.jp/search/result?from=${encodeURIComponent(YN(from))}&to=${encodeURIComponent(YN(to))}&y=2026&m=${day.slice(0,2)}&d=${day.slice(2)}&hh=${Math.floor(arr/60)}&m1=${Math.floor(arr%60/10)}&m2=${arr%10}&type=4`;
+const gTransit = (o, d) => "https://www.google.com/maps/dir/?api=1&travelmode=transit&origin=" + encodeURIComponent(o) + "&destination=" + encodeURIComponent(d);
+// 各区間の乗換案内（公共交通モードのみ）
+function legsHtml(day) {
+  if (mode !== "transit") return "";
+  const ids = dayIds(day); if (!ids.length) return "";
+  const legs = []; let prev = null;
+  ids.forEach(id => {
+    const x = S[id], co = C[x[1]], s = effStart(id);
+    if (prev && addrOf(prev) === addrOf(x)) { prev = x; return; }
+    const head = `<b>${legs.length + 1}</b><span>${prev ? esc(C[prev[1]][0]) : "現在地"} → ${esc(co[0])}<small>${fmt(s)} 開始</small></span>`;
+    let info = "", btns = "";
+    if (!prev) {
+      btns = `<a href="${gTransit("My Location", mapAddr(addrOf(x)))}" target="_blank" rel="noopener">Googleマップで乗換案内↗</a>`;
+    } else {
+      const l = transitLeg(prev, x); info = `<small class="li">${esc(l.text)}</small>`;
+      if (l.walk) btns = `<a href="${transitUrl(prev, x, true)}" target="_blank" rel="noopener">徒歩ルート（Googleマップ）↗</a>`;
+      else { const arr = Math.max(0, s - l.w2 - 5);
+        btns = `<a class="y" href="${yahooUrl(l.from, l.to, day, arr)}" target="_blank" rel="noopener">Yahoo!乗換案内（${esc(l.from)}→${esc(l.to)}・${fmt(arr)}着）↗</a><a href="${transitUrl(prev, x)}" target="_blank" rel="noopener">Googleマップ↗</a>`; }
+    }
+    legs.push(`<li>${head}${info}<div class="lb">${btns}</div></li>`); prev = x;
+  });
+  return `<details class="legs"><summary>各区間の乗換案内を表示（${legs.length}区間）</summary><ol>${legs.join("")}</ol><p class="hint">Yahoo!乗換案内は、次の会場の開始時刻に間に合う到着時刻（駅からの徒歩＋5分前）で検索します。</p></details>`;
+}
 const moveText = (a, b) => mode === "transit" ? transitLeg(a, b).text : `車で約${carMin(a, b)}分`;
 const moveLink = (a, b) => mode === "transit" ? (l => `<a href="${transitUrl(a, b, l.walk)}" target="_blank" rel="noopener">${l.walk ? "徒歩経路" : "乗換経路"}↗</a>`)(transitLeg(a, b)) : "";
 const travelMin = (a, b) => mode === "transit" ? transitLeg(a, b).min : carMin(a, b);
@@ -691,6 +734,7 @@ function renderCourse() {
   const addrs = ids.map(id => addrOf(S[id])).filter((a, i, arr) => a && a !== arr[i - 1]);
   const route = document.getElementById("route");
   route.href = routeUrl(addrs);
+  { const lb = document.getElementById("legsBox"), wasOpen = !!lb.querySelector("details[open]"); lb.innerHTML = legsHtml(state.day); const dd = lb.querySelector("details"); if (dd && wasOpen) dd.open = true; }
   route.textContent = mode === "transit" ? "現在地から最初の会場へ（公共交通）" : "現在地から この日の経路を地図で";
   route.style.pointerEvents = addrs.length ? "" : "none"; route.style.opacity = addrs.length ? "" : ".45";
   ["copyLink","copyView","copyText","clear","saveCsv"].forEach(b => document.getElementById(b).disabled = !all.length);
@@ -853,7 +897,7 @@ function renderPreview() {
       const ids = dayIds(d), addrs = ids.map(id => addrOf(S[id])).filter((a, i, arr) => a && a !== arr[i - 1]);
       const route = routeUrl(addrs);
       let prev = null;
-      return `<article class="pvday"><h3><span>${fullDate(d)} <small>${new Set(ids.map(id => S[id][1])).size}社 ${ids.length}コマ</small></span>${addrs.length ? `<a href="${route}" target="_blank" rel="noopener">${mode === "transit" ? "現在地から最初の会場へ（公共交通）↗" : "現在地からの経路を地図で ↗"}</a>` : ""}</h3>` +
+      return `<article class="pvday"><h3><span>${fullDate(d)} <small>${new Set(ids.map(id => S[id][1])).size}社 ${ids.length}コマ</small></span>${addrs.length ? `<a href="${route}" target="_blank" rel="noopener">${mode === "transit" ? "現在地から最初の会場へ（公共交通）↗" : "現在地からの経路を地図で ↗"}</a>` : ""}</h3>${legsHtml(d)}` +
         ids.map(id => {
           const x = S[id], co = C[x[1]], s = effStart(id), g = geoOf(x);
           let mv = "";
