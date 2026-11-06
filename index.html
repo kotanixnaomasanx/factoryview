@@ -239,6 +239,15 @@ aside h2 small{font-size:12px;color:var(--muted);font-weight:500}
 .pvfoot .back{margin-left:auto}
 @media (max-width:600px){.pvfoot .back,.pvhead .back{width:100%;justify-content:center;margin-left:0}}
 .oncechip[aria-pressed="true"]{background:var(--salmon);border-color:var(--salmon);color:#fff}
+.mv{margin-top:8px;padding:8px;border:1px dashed var(--line);border-radius:8px;background:var(--bg)}
+.mvl{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px}
+.mvr{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center}
+.mvr select[data-du]{grid-column:1/-1}
+.mvr select[data-st]{grid-column:1/-1;order:-1;font-size:14px}
+.mv select{min-width:0;width:100%}
+.mv button,.mv select{font:inherit;font-size:12.5px;font-weight:700;border:1px solid var(--blue);color:var(--blue);background:var(--panel);border-radius:7px;padding:4px 8px;cursor:pointer}
+.mv select{font-family:var(--mono);color:var(--ink);border-color:var(--line)}
+.mv button:disabled{opacity:.35;cursor:not-allowed}
 .pvfoot{display:flex;flex-wrap:wrap;gap:8px}
 .pvfoot .btn{flex:1 1 200px}
 @media (max-width:520px){.pvi{grid-template-columns:56px minmax(0,1fr)}.pvmove{padding-left:84px}}
@@ -530,18 +539,20 @@ const qOk = x => { const qq = q.trim(); return !qq || C[x[1]][0].includes(qq) ||
 function encode() {
   const pm = mode === "transit" ? "p" : "";
   if (!state.sel.length) return "d" + state.day + pm;
-  return (previewMode ? "v" : "c") + state.day + pm + "-" + state.sel.map(id => id.toString(36) + (state.times[id] != null ? "t" + String(Math.floor(state.times[id]/60)).padStart(2,"0") + String(state.times[id]%60).padStart(2,"0") : "")).join("-")
+  return (previewMode ? "v" : "c") + state.day + pm + "-" + state.sel.map(id => id.toString(36) + (state.times[id] != null ? "t" + String(Math.floor(state.times[id]/60)).padStart(2,"0") + String(state.times[id]%60).padStart(2,"0") : "") + (durs[id] != null && durs[id] !== 60 ? "m" + durs[id] : "")).join("-")
     + (ad => ad.length ? "-_a" + ad.join(".") : "")([...autoDays].filter(d => state.sel.some(id => S[id][0] === d)).sort());
 }
 function decode(h) {
   const m = h.match(/^([cdv])(\d{4})(p?)(.*)$/); if (!m || !DAYS.includes(m[2])) return null;
-  const st = { day: m[2], sel: [], times: {} }; mode = m[3] ? "transit" : "car"; autoDays = new Set();
+  const st = { day: m[2], sel: [], times: {} }; mode = m[3] ? "transit" : "car"; autoDays = new Set(); durs = {};
   const ta = m[4].match(/-_a([\d.]+)/); if (ta) ta[1].split(".").filter(d => DAYS.includes(d)).forEach(d => autoDays.add(d));
   m[4].replace(/-_a[\d.]+/, "").split("-").filter(Boolean).forEach(tok => {
-    const [a, t] = tok.split("t"); const id = parseInt(a, 36);
+    const mm = tok.match(/^([0-9a-z]+?)(?:t(\d{4}))?(?:m(\d{2,3}))?$/); if (!mm) return;
+    const id = parseInt(mm[1], 36), t = mm[2];
     if (S[id] && !st.sel.includes(id)) {
       st.sel.push(id);
-      if (t && /^\d{4}$/.test(t)) st.times[id] = (+t.slice(0,2))*60 + (+t.slice(2));
+      if (t) st.times[id] = (+t.slice(0,2))*60 + (+t.slice(2));
+      if (mm[3] && DUR_OPTS.includes(+mm[3])) durs[id] = +mm[3];
     }
   });
   st.view = m[1] === "v"; return st;
@@ -557,7 +568,13 @@ window.addEventListener("hashchange", () => {
 });
 
 const effStart = id => { const x = S[id]; return state.times[id] ?? x.p.s ?? 9*60; };
-const effEnd = id => { const x = S[id]; if (state.times[id] != null || x.p.win) return effStart(id) + 60; return x.p.e != null ? Math.min(x.p.e, effStart(id) + 90) : effStart(id) + 60; };
+// 時間帯に幅があるコマの滞在時間（分）。未指定は60分
+let durs = {};
+const DUR_OPTS = [30, 45, 60, 90, 120];
+const durOf = id => durs[id] ?? 60;
+const winOf = x => ({ lo: x.p.s ?? 600, hi: x.p.e ?? 1020 });
+const durLabel = m => m < 60 ? `${m}分` : (m % 60 ? `${Math.floor(m / 60)}時間${m % 60}分` : `${m / 60}時間`);
+const effEnd = id => { const x = S[id]; if (state.times[id] != null || x.p.win) return effStart(id) + (x.p.win ? durOf(id) : 60); return x.p.e != null ? Math.min(x.p.e, effStart(id) + 90) : effStart(id) + 60; };
 const byTime = (a,b) => effStart(a) - effStart(b);
 const dayIds = d => state.sel.filter(id => S[id][0] === d).sort(byTime);
 const selDays = () => [...new Set(state.sel.map(id => S[id][0]))].sort();
@@ -664,7 +681,7 @@ function renderList() {
 }
 function toggle(id) {
   const i = state.sel.indexOf(id);
-  if (i >= 0) { state.sel.splice(i, 1); delete state.times[id]; } else state.sel.push(id);
+  if (i >= 0) { state.sel.splice(i, 1); delete state.times[id]; delete durs[id]; } else state.sel.push(id);
   autoDays.delete(S[id][0]); syncHash(); render();
 }
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
@@ -700,20 +717,31 @@ function renderCourse() {
     }
     const flex = x.p.win || x.p.open;
     const tLabel = state.times[id] != null ? fmt(state.times[id]) : (x.p.s != null ? fmt(x.p.s) : "—");
-    li.innerHTML = `${note}<div class="t">${tLabel}<small>${x.p.win || state.times[id] != null ? "訪問予定" : (x.p.e && !x.p.open ? "〜" + fmt(x.p.e) : "開始")}</small></div>
+    let ctl = "";
+    if (x.p.win) {
+      const w = winOf(x), d = durOf(id), opts = [];
+      for (let m = w.lo; m + d <= w.hi || m === w.lo; m += 15) opts.push(`<option value="${m}"${m === s ? " selected" : ""}>${fmt(m)}〜${fmt(m + d)}</option>`);
+      if (!opts.some(o => o.includes(" selected"))) opts.unshift(`<option value="${s}" selected>${fmt(s)}〜${fmt(s + d)}</option>`);
+      ctl = `<div class="mv"><span class="mvl">訪問する時間（開催 ${fmt(w.lo)}〜${fmt(w.hi)} の中で選べます）</span>
+        <div class="mvr"><button type="button" data-sh="-15" data-id="${id}" ${s - 15 < w.lo ? "disabled" : ""} aria-label="15分早く">◀ 15分</button>
+        <select data-st="${id}" aria-label="訪問する時間帯">${opts.join("")}</select>
+        <button type="button" data-sh="15" data-id="${id}" ${s + 15 + d > w.hi ? "disabled" : ""} aria-label="15分遅く">15分 ▶</button>
+        <select data-du="${id}" aria-label="滞在時間">${DUR_OPTS.filter(m => m <= w.hi - w.lo || m === 60).map(m => `<option value="${m}"${m === d ? " selected" : ""}>滞在 ${durLabel(m)}</option>`).join("")}</select></div></div>`;
+    }
+    li.innerHTML = `${note}<div class="t">${tLabel}<small>${x.p.win ? "〜" + fmt(e) : state.times[id] != null ? "訪問予定" : (x.p.e && !x.p.open ? "〜" + fmt(x.p.e) : "開始")}</small></div>
       <div><div class="c">${esc(co[0])} <span class="k k-${x[3]}">${x[3]}</span></div><div class="d">${esc(x[2])}${rvBadge(x)}${x.once ? '<span class="once">1回きり</span>' : ""}</div>${sumOf(x) ? `<div class="ds">${esc(sumOf(x))}</div>` : ""}
       <div class="a">${esc(addrOf(x))}${x.p.win && x[4] ? `・開催 ${x[4]}` : ""}</div>${geoOf(x) ? `<div class="a">最寄り ${staText(geoOf(x))}</div>` : ""}
       <a class="cal" href="${gcalUrl(id)}" target="_blank" rel="noopener">＋カレンダー</a>${sfvUrl(x[1]) ? `<div>${detailLink(x[1])}</div>` : ""}
-      ${x.p.win ? `<label class="a">訪問時刻 <input type="time" step="900" value="${state.times[id] != null ? fmt(state.times[id]).padStart(5,"0") : ""}" data-id="${id}"></label>` : ""}</div>
+      ${ctl}</div>
       <button class="rm" aria-label="${esc(co[0])}を外す" data-rm="${id}">×</button>`;
     tl.appendChild(li); prev = id;
   });
   tl.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => toggle(+b.dataset.rm));
-  tl.querySelectorAll("input[type=time]").forEach(inp => inp.onchange = () => {
-    const m = toMin(inp.value); const id = +inp.dataset.id;
-    if (m == null) delete state.times[id]; else state.times[id] = m;
-    autoDays.delete(S[id][0]); syncHash(); render();
-  });
+  const setStart = (id, m) => { const x = S[id], w = winOf(x), d = durOf(id);
+    state.times[id] = Math.max(w.lo, Math.min(m, Math.max(w.lo, w.hi - d))); autoDays.delete(x[0]); syncHash(); render(); };
+  tl.querySelectorAll("[data-sh]").forEach(b => b.onclick = () => setStart(+b.dataset.id, effStart(+b.dataset.id) + +b.dataset.sh));
+  tl.querySelectorAll("[data-st]").forEach(sel => sel.onchange = () => setStart(+sel.dataset.st, +sel.value));
+  tl.querySelectorAll("[data-du]").forEach(sel => sel.onchange = () => { const id = +sel.dataset.du; durs[id] = +sel.value; if (durs[id] === 60) delete durs[id]; setStart(id, effStart(id)); });
   const addrs = ids.map(id => addrOf(S[id])).filter((a, i, arr) => a && a !== arr[i - 1]);
   const route = document.getElementById("route");
   route.href = routeUrl(addrs);
@@ -729,7 +757,7 @@ function shareUrl() { return (ON_CLAUDE && ARTIFACT_URL.startsWith("http") ? ART
 function courseText() {
   const line = id => {
     const x = S[id], s = effStart(id);
-    const t = state.times[id] != null || x.p.win ? `${fmt(s)}頃` : x[4];
+    const t = x.p.win ? `${fmt(s)}〜${fmt(effEnd(id))}` : state.times[id] != null ? `${fmt(s)}頃` : x[4];
     return `・${t} ${C[x[1]][0]}【${x[3]}】${x[2]}${rsvOf(x) ? `（${rsvOf(x)}）` : ""}\n　${addrOf(x)}` + (sfvUrl(x[1]) ? `\n　詳細ページ ${sfvUrl(x[1])}` : "");
   };
   const ds = selDays();
@@ -748,7 +776,7 @@ function evInfo(id) {
   const x = S[id], co = C[x[1]], s = effStart(id), e = effEnd(id);
   const subject = `【SFV2026】${co[0]}｜${x[3]}`;
   const desc = [`SFV2026 コース ${fullDate(x[0])}`, `企画：${x[2]}`, ...(rsvOf(x) ? [`予約：${rsvOf(x)}`] : []), ...(sumOf(x) ? [`概要：${sumOf(x)}`] : []), `種別：${x[3]}`,
-    `開催時間：${x[4] || "時間未定"}${x.p.win ? `（訪問予定 ${fmt(s)}）` : ""}`, `場所：${addrOf(x)}`, ...(geoOf(x) ? [`最寄り：${staText(geoOf(x))}（目安）`] : []), `市町：${co[1]}`, ...(sfvUrl(x[1]) ? [`詳細ページ：${sfvUrl(x[1])}`] : []), `コース：${shareUrl()}`].join("\n");
+    `開催時間：${x[4] || "時間未定"}${x.p.win ? `（訪問予定 ${fmt(s)}〜${fmt(e)}）` : ""}`, `場所：${addrOf(x)}`, ...(geoOf(x) ? [`最寄り：${staText(geoOf(x))}（目安）`] : []), `市町：${co[1]}`, ...(sfvUrl(x[1]) ? [`詳細ページ：${sfvUrl(x[1])}`] : []), `コース：${shareUrl()}`].join("\n");
   return { x, co, s, e, subject, desc, loc: addrOf(x) };
 }
 function gcalUrl(id) {
@@ -885,7 +913,7 @@ function renderPreview() {
           let mv = "";
           if (prev != null && addrOf(S[prev]) !== addrOf(x)) mv = `<div class="pvmove">↓ ${moveText(S[prev], x)}（目安）${moveLink(S[prev], x)}</div>`;
           prev = id;
-          const tm = state.times[id] != null || x.p.win ? `${fmt(s)}<small>頃 訪問</small>` : `${x.p.s != null ? fmt(x.p.s) : "—"}<small>${x.p.e && !x.p.open ? "〜" + fmt(x.p.e) : ""}</small>`;
+          const tm = x.p.win ? `${fmt(s)}<small>〜${fmt(effEnd(id))} 訪問</small>` : state.times[id] != null ? `${fmt(s)}<small>頃 訪問</small>` : `${x.p.s != null ? fmt(x.p.s) : "—"}<small>${x.p.e && !x.p.open ? "〜" + fmt(x.p.e) : ""}</small>`;
           return `${mv}<div class="pvi"><div class="t">${tm}</div><div>
             <div class="c">${esc(co[0])} <span class="k k-${x[3]}">${x[3]}</span>${rvBadge(x)}${x.once ? '<span class="once">1回きり</span>' : ""}</div>
             <div class="d">${esc(x[2])}</div>${sumOf(x) ? `<div class="ds">${esc(sumOf(x))}</div>` : ""}
