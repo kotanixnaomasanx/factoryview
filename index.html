@@ -238,6 +238,7 @@ aside h2 small{font-size:12px;color:var(--muted);font-weight:500}
 .back svg{width:16px;height:16px;flex:none}
 .pvfoot .back{margin-left:auto}
 @media (max-width:600px){.pvfoot .back,.pvhead .back{width:100%;justify-content:center;margin-left:0}}
+.oncechip[aria-pressed="true"]{background:var(--salmon);border-color:var(--salmon);color:#fff}
 .pvfoot{display:flex;flex-wrap:wrap;gap:8px}
 .pvfoot .btn{flex:1 1 200px}
 @media (max-width:520px){.pvi{grid-template-columns:56px minmax(0,1fr)}.pvmove{padding-left:84px}}
@@ -617,15 +618,21 @@ function renderFilters() {
   ex.textContent = exclShop ? "製品展示・物販を除外中" : "製品展示・物販を除外";
   ex.onclick = () => { exclShop = !exclShop; render(); };
   document.getElementById("fKind").appendChild(ex);
+  const on = document.createElement("button"); on.className = "chip ex oncechip"; on.setAttribute("aria-pressed", onlyOnce);
+  on.textContent = onlyOnce ? "1回きりの企画だけ表示中" : "1回きりの企画だけ表示";
+  on.onclick = () => { onlyOnce = !onlyOnce; render(); };
+  document.getElementById("fKind").appendChild(on);
 }
 // 会社のジャンル（業種）。初期状態はすべて選択
 const genreOf = ci => C[ci][2] === "要確認" ? "その他" : C[ci][2];
 const GENRES = (() => { const n = {}; C.forEach((c, i) => { if (c[2] !== "主催") { const g = genreOf(i); n[g] = (n[g] || 0) + 1; } });
   return Object.keys(n).sort((a, b) => (a === "その他") - (b === "その他") || n[b] - n[a]); })();
 let fGenre = new Set(GENRES);
+let onlyOnce = false; // 1回きりの企画だけを表示
 const genreOk = x => C[x[1]][2] === "主催" || fGenre.has(genreOf(x[1]));
 function cityOk(x) {
   if (!genreOk(x)) return false;
+  if (onlyOnce && !x.once) return false;
   const c = C[x[1]][1];
   if (!fCity.size) return true;
   if (fCity.has(c)) return true;
@@ -638,7 +645,7 @@ function renderList() {
   const slots = S.filter(x => x[0] === state.day && cityOk(x) && kindOk(x) && staOk(x) && rsvOk(x) && doneOk(x) && qOk(x));
   const by = new Map(); slots.forEach(x => { if (!by.has(x[1])) by.set(x[1], []); by.get(x[1]).push(x); });
   const groups = [...by.entries()].sort((a,b) => (WEST.has(C[b[0]][1]) - WEST.has(C[a[0]][1])) || C[a[0]][1].localeCompare(C[b[0]][1],"ja") || C[a[0]][0].localeCompare(C[b[0]][0],"ja"));
-  if (!groups.length) { el.innerHTML = `<div class="empty">この条件のコマはありません。エリア・ジャンル・種別などの絞り込みを見直してください。</div>`; return; }
+  if (!groups.length) { el.innerHTML = `<div class="empty">この条件のコマはありません。エリア・ジャンル・種別・「1回きり」などの絞り込みを見直してください。</div>`; return; }
   groups.forEach(([ci, xs]) => {
     const co = C[ci], card = document.createElement("article"); card.className = "co" + (done.has(ci) ? " done" : ""); card.id = "co" + ci;
     const main = xs.find(x => !x[5]) || xs[0], gm = geoOf(main);
